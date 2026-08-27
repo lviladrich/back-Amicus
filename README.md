@@ -11,7 +11,7 @@ Aplicaciones Interactivas, UADE, segundo cuatrimestre 2026.
 
 ## Stack
 
-Java 21 · Spring Boot 3.5.3 · Spring Data JPA (Hibernate) · Lombok · Maven · MySQL 8.4
+Java 21 · Spring Boot 3.5.3 · Spring Data JPA (Hibernate) · Lombok · Maven · MySQL 8.4 · Swagger
 
 ## Cómo ejecutarlo
 
@@ -80,6 +80,18 @@ config/       configuración y carga de datos inicial
 | POST | `/api/carrito/checkout?usuarioId=` | confirma, descuenta cupos y genera la orden |
 | GET | `/api/ordenes?usuarioId=` | historial de compras |
 | GET | `/api/ordenes/{id}` | detalle de una orden |
+
+## Documentación interactiva de la API
+
+Con la aplicación corriendo:
+
+```
+http://localhost:8080/swagger-ui.html
+```
+
+Lista los 26 endpoints agrupados por área, con sus parámetros, los cuerpos que
+esperan y un botón "Try it out" para ejecutarlos desde el navegador. Se genera
+automáticamente del código, así que no puede quedar desactualizada.
 
 ## Cómo probar
 

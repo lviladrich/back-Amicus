@@ -6,6 +6,8 @@ import com.uade.amicus.dto.response.UsuarioResponse;
 import com.uade.amicus.service.UsuarioService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
  * traduce el resultado en una respuesta HTTP. Toda la logica esta en
  * UsuarioService.
  */
+@Tag(name = "1. Autenticacion", description = "Registro de usuarios y login")
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -33,17 +36,22 @@ public class AuthController {
      *
      * 201 CREATED y no 200: se creo un recurso nuevo.
      */
+    @Operation(summary = "Registrar un usuario",
+            description = "Crea el usuario y su carrito. La contrasena se guarda hasheada con BCrypt y nunca se devuelve.")
     @PostMapping("/registro")
     public ResponseEntity<UsuarioResponse> registrar(@Valid @RequestBody RegistroRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.registrar(request));
     }
 
     /** 200 OK: el login no crea nada, solo verifica. */
+    @Operation(summary = "Iniciar sesion",
+            description = "Valida mail y contrasena. Devuelve el mismo mensaje si el mail no existe o si la contrasena es incorrecta, para no revelar que mails estan registrados.")
     @PostMapping("/login")
     public ResponseEntity<UsuarioResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(usuarioService.login(request));
     }
 
+    @Operation(summary = "Buscar un usuario por id")
     @GetMapping("/usuarios/{id}")
     public ResponseEntity<UsuarioResponse> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(usuarioService.buscarPorId(id));
