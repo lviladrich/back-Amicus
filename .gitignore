@@ -1,0 +1,35 @@
+# --- Compilados de Maven ---
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# --- Base de datos H2 local ---
+# Cada integrante tiene la suya, no se versiona.
+data/
+*.db
+*.mv.db
+*.trace.db
+
+# --- IDEs ---
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+nbproject/private/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# --- Sistema operativo ---
+.DS_Store
+Thumbs.db
+
+# --- Logs y variables de entorno ---
+*.log
+.env

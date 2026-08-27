@@ -1,0 +1,20 @@
+# Levanta MySQL para quien prefiera usarlo en lugar de H2.
+# Uso:  docker compose up -d
+# Luego: ./mvnw spring-boot:run -Dspring-boot.run.profiles=mysql
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: amicus-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: amicus
+      MYSQL_USER: amicus
+      MYSQL_PASSWORD: amicus
+    ports:
+      - "3306:3306"
+    volumes:
+      - amicus-mysql-data:/var/lib/mysql
+
+volumes:
+  amicus-mysql-data:
