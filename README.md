@@ -102,7 +102,7 @@ Con la aplicación corriendo, en otra terminal:
 ```
 
 Recorre el flujo completo (registro, login, publicación, catálogo, carrito,
-checkout, precio congelado y baja lógica) y verifica 42 casos, incluidos los de
+checkout, precio congelado y baja lógica) y verifica 47 casos, incluidos los de
 error que pide la consigna. Termina diciendo cuántos pasaron.
 
 También hay una colección de Postman lista para importar en

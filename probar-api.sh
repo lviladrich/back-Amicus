@@ -204,6 +204,14 @@ echo "     -> total de la orden: \$$(campo total)"
 probar "Historial de compras"                 200 GET "/ordenes?usuarioId=$CLI"
 
 # ------------------------------------------------------------
+titulo "11. PEDIDOS MAL FORMADOS"
+probar "Metodo no permitido da 405"             405 DELETE "/categorias/1"
+probar "JSON malformado da 400"                 400 POST "/auth/login" '{esto no es json}'
+probar "Falta parametro obligatorio da 400"     400 GET "/carrito"
+probar "Tipo invalido en la ruta da 400"        400 GET "/servicios/abc"
+probar "Ruta inexistente da 404"                404 GET "/no-existe"
+
+# ------------------------------------------------------------
 echo
 echo "============================================================"
 if [ $FALLOS -eq 0 ]; then
