@@ -83,11 +83,12 @@ public class ServicioController {
 
     /** PUT reemplaza el recurso completo. */
     @Operation(summary = "Modificar una publicacion",
-            description = "PUT reemplaza el recurso completo: hay que enviar todos los campos.")
+            description = "PUT reemplaza el recurso completo: hay que enviar todos los campos. Solo el profesional que publico el servicio puede modificarlo: si usuarioId no coincide, devuelve 403.")
     @PutMapping("/{id}")
     public ResponseEntity<ServicioDetalleResponse> actualizar(@PathVariable Long id,
+                                                              @RequestParam Long usuarioId,
                                                               @Valid @RequestBody ServicioRequest request) {
-        return ResponseEntity.ok(servicioService.actualizar(id, request));
+        return ResponseEntity.ok(servicioService.actualizar(id, usuarioId, request));
     }
 
     /**
@@ -95,20 +96,22 @@ public class ServicioController {
      * Esa es la diferencia entre los dos verbos.
      */
     @Operation(summary = "Ajustar cupos",
-            description = "PATCH modifica solo los cupos, sin reenviar el resto de la publicacion.")
+            description = "PATCH modifica solo los cupos, sin reenviar el resto de la publicacion. Solo el profesional que publico el servicio puede hacerlo: la consigna dice que el usuario que crea el producto es quien maneja su stock.")
     @PatchMapping("/{id}/cupos")
     public ResponseEntity<ServicioDetalleResponse> actualizarCupos(
             @PathVariable Long id,
+            @RequestParam Long usuarioId,
             @Valid @RequestBody ActualizarCuposRequest request) {
-        return ResponseEntity.ok(servicioService.actualizarCupos(id, request));
+        return ResponseEntity.ok(servicioService.actualizarCupos(id, usuarioId, request));
     }
 
     /** 204 NO CONTENT: se hizo, no hay nada que devolver. */
     @Operation(summary = "Dar de baja",
-            description = "Baja logica: el servicio deja de listarse pero la fila sobrevive, porque puede estar referenciada en ordenes historicas.")
+            description = "Baja logica: el servicio deja de listarse pero la fila sobrevive, porque puede estar referenciada en ordenes historicas. Solo el profesional que lo publico puede darlo de baja.")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        servicioService.eliminar(id);
+    public ResponseEntity<Void> eliminar(@PathVariable Long id,
+                                         @RequestParam Long usuarioId) {
+        servicioService.eliminar(id, usuarioId);
         return ResponseEntity.noContent().build();
     }
 
@@ -116,15 +119,18 @@ public class ServicioController {
             description = "La consigna pide poder adjuntar una o mas fotos por publicacion.")
     @PostMapping("/{id}/imagenes")
     public ResponseEntity<ServicioDetalleResponse> agregarImagen(@PathVariable Long id,
+                                                                 @RequestParam Long usuarioId,
                                                                  @Valid @RequestBody ImagenRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(servicioService.agregarImagen(id, request));
+                .body(servicioService.agregarImagen(id, usuarioId, request));
     }
 
     @Operation(summary = "Quitar una foto")
     @DeleteMapping("/{id}/imagenes/{imagenId}")
-    public ResponseEntity<Void> eliminarImagen(@PathVariable Long id, @PathVariable Long imagenId) {
-        servicioService.eliminarImagen(id, imagenId);
+    public ResponseEntity<Void> eliminarImagen(@PathVariable Long id,
+                                               @RequestParam Long usuarioId,
+                                               @PathVariable Long imagenId) {
+        servicioService.eliminarImagen(id, usuarioId, imagenId);
         return ResponseEntity.noContent().build();
     }
 }

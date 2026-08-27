@@ -67,11 +67,11 @@ config/       configuración y carga de datos inicial
 | GET | `/api/servicios` | catálogo alfabético. Filtros: `?categoriaId=` `?zonaId=` `?q=` `?conCupo=true` |
 | GET | `/api/servicios/{id}` | detalle con imágenes, categoría, profesional y zonas |
 | POST | `/api/servicios` | publica un servicio |
-| PUT | `/api/servicios/{id}` | modifica una publicación |
-| PATCH | `/api/servicios/{id}/cupos` | ajusta los cupos disponibles |
-| DELETE | `/api/servicios/{id}` | baja lógica |
-| POST | `/api/servicios/{id}/imagenes` | agrega una foto |
-| DELETE | `/api/servicios/{id}/imagenes/{imagenId}` | quita una foto |
+| PUT | `/api/servicios/{id}?usuarioId=` | modifica una publicación. 403 si no sos el dueño |
+| PATCH | `/api/servicios/{id}/cupos?usuarioId=` | ajusta los cupos. 403 si no sos el dueño |
+| DELETE | `/api/servicios/{id}?usuarioId=` | baja lógica. 403 si no sos el dueño |
+| POST | `/api/servicios/{id}/imagenes?usuarioId=` | agrega una foto |
+| DELETE | `/api/servicios/{id}/imagenes/{imagenId}?usuarioId=` | quita una foto |
 | GET | `/api/carrito?usuarioId=` | contenido con el total calculado |
 | POST | `/api/carrito/items?usuarioId=` | agrega un servicio. 409 si no tiene cupos |
 | PUT | `/api/carrito/items/{id}?usuarioId=` | cambia la cantidad |
@@ -102,7 +102,7 @@ Con la aplicación corriendo, en otra terminal:
 ```
 
 Recorre el flujo completo (registro, login, publicación, catálogo, carrito,
-checkout, precio congelado y baja lógica) y verifica 37 casos, incluidos los de
+checkout, precio congelado y baja lógica) y verifica 42 casos, incluidos los de
 error que pide la consigna. Termina diciendo cuántos pasaron.
 
 También hay una colección de Postman lista para importar en

@@ -52,6 +52,13 @@ public class ManejadorGlobalDeErrores {
         return construir(HttpStatus.UNAUTHORIZED, ex.getMessage(), request, null);
     }
 
+    /** 403: esta identificado pero el recurso no es suyo. */
+    @ExceptionHandler(OperacionNoPermitidaException.class)
+    public ResponseEntity<RespuestaError> noPermitido(OperacionNoPermitidaException ex,
+                                                      HttpServletRequest request) {
+        return construir(HttpStatus.FORBIDDEN, ex.getMessage(), request, null);
+    }
+
     /**
      * 400 por validacion: se dispara cuando un DTO anotado con @Valid no cumple
      * sus restricciones. Devuelve que campo fallo y por que.

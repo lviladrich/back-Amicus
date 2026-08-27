@@ -172,7 +172,7 @@ probar "Rechazar checkout con carrito vacio"  400 POST "/carrito/checkout?usuari
 # ------------------------------------------------------------
 titulo "8. EL PRECIO CONGELADO"
 echo "  El profesional sube el precio de 25.000 a 40.000:"
-probar "Modificar la publicacion"             200 PUT "/servicios/$SERV" \
+probar "Modificar la publicacion"             200 PUT "/servicios/$SERV?usuarioId=$PRO" \
   "{\"titulo\":\"Instalacion de ventilador $SUFIJO\",\"descripcion\":\"Descripcion actualizada.\",\"precio\":40000.00,\"cuposDisponibles\":5,\"categoriaId\":1,\"profesionalId\":$PRO,\"zonaIds\":[4]}"
 echo "     -> precio actual del servicio: \$$(campo precio)"
 probar "Consultar la orden ya pagada"         200 GET "/ordenes/$ORDEN"
@@ -185,10 +185,20 @@ print('     -> el comprobante NO se reescribio')
 "
 
 # ------------------------------------------------------------
-titulo "9. BAJA LOGICA"
-probar "Ajustar cupos con PATCH"              200 PATCH "/servicios/$SIN_CUPOS/cupos" '{"cuposDisponibles":7}'
-probar "Dar de baja el servicio"              204 DELETE "/servicios/$SERV"
-probar "Rechazar la segunda baja"             400 DELETE "/servicios/$SERV"
+titulo "9. VALIDACION DE PROPIETARIO"
+probar "Rechazar que otro modifique"          403 PUT "/servicios/$SERV?usuarioId=$CLI" \
+  "{\"titulo\":\"Secuestrado\",\"descripcion\":\"Intento de modificacion ajena.\",\"precio\":1.00,\"cuposDisponibles\":99,\"categoriaId\":1,\"profesionalId\":$CLI,\"zonaIds\":[4]}"
+echo "     -> $(campo mensaje)"
+probar "Rechazar que otro cambie los cupos"   403 PATCH "/servicios/$SERV/cupos?usuarioId=$CLI" '{"cuposDisponibles":99}'
+probar "Rechazar que otro agregue fotos"      403 POST "/servicios/$SERV/imagenes?usuarioId=$CLI" '{"url":"https://ejemplo.com/ajena.jpg"}'
+probar "Rechazar que otro de de baja"         403 DELETE "/servicios/$SERV?usuarioId=$CLI"
+echo "     -> $(campo mensaje)"
+probar "El dueno SI puede ajustar cupos"      200 PATCH "/servicios/$SERV/cupos?usuarioId=$PRO" '{"cuposDisponibles":4}'
+
+titulo "10. BAJA LOGICA"
+probar "Ajustar cupos con PATCH"              200 PATCH "/servicios/$SIN_CUPOS/cupos?usuarioId=$PRO" '{"cuposDisponibles":7}'
+probar "Dar de baja el servicio"              204 DELETE "/servicios/$SERV?usuarioId=$PRO"
+probar "Rechazar la segunda baja"             400 DELETE "/servicios/$SERV?usuarioId=$PRO"
 probar "La orden sigue existiendo"            200 GET "/ordenes/$ORDEN"
 echo "     -> total de la orden: \$$(campo total)"
 probar "Historial de compras"                 200 GET "/ordenes?usuarioId=$CLI"

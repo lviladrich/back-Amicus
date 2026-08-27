@@ -5,6 +5,7 @@ import com.uade.amicus.dto.request.ImagenRequest;
 import com.uade.amicus.dto.request.ServicioRequest;
 import com.uade.amicus.dto.response.ServicioDetalleResponse;
 import com.uade.amicus.dto.response.ServicioResumenResponse;
+import com.uade.amicus.exception.OperacionNoPermitidaException;
 import com.uade.amicus.exception.RecursoNoEncontradoException;
 import com.uade.amicus.exception.ReglaDeNegocioException;
 import com.uade.amicus.model.Servicio;
@@ -111,8 +112,9 @@ public class ServicioService {
      * confirmar. Se llama dirty checking.
      */
     @Transactional
-    public ServicioDetalleResponse actualizar(Long id, ServicioRequest request) {
+    public ServicioDetalleResponse actualizar(Long id, Long usuarioId, ServicioRequest request) {
         Servicio servicio = obtenerEntidad(id);
+        validarPropietario(servicio, usuarioId, "modificar");
 
         servicio.setTitulo(request.titulo());
         servicio.setDescripcion(request.descripcion());
@@ -124,10 +126,18 @@ public class ServicioService {
         return ServicioDetalleResponse.desde(servicio);
     }
 
-    /** Ajuste de cupos: la consigna pide que quien publica maneje su stock. */
+    /**
+     * Ajuste de cupos.
+     *
+     * La consigna dice que "el usuario QUE CREA dicho producto podra manejar el
+     * stock del mismo", asi que la validacion de propietario no es un extra:
+     * es parte del requisito.
+     */
     @Transactional
-    public ServicioDetalleResponse actualizarCupos(Long id, ActualizarCuposRequest request) {
+    public ServicioDetalleResponse actualizarCupos(Long id, Long usuarioId,
+                                                   ActualizarCuposRequest request) {
         Servicio servicio = obtenerEntidad(id);
+        validarPropietario(servicio, usuarioId, "manejar los cupos de");
         servicio.setCuposDisponibles(request.cuposDisponibles());
         return ServicioDetalleResponse.desde(servicio);
     }
@@ -139,8 +149,9 @@ public class ServicioService {
      * ya confirmadas. Ver docs/teoria/08.
      */
     @Transactional
-    public void eliminar(Long id) {
+    public void eliminar(Long id, Long usuarioId) {
         Servicio servicio = obtenerEntidad(id);
+        validarPropietario(servicio, usuarioId, "dar de baja");
         if (Boolean.FALSE.equals(servicio.getActivo())) {
             throw new ReglaDeNegocioException("El servicio ya estaba dado de baja");
         }
@@ -148,8 +159,10 @@ public class ServicioService {
     }
 
     @Transactional
-    public ServicioDetalleResponse agregarImagen(Long servicioId, ImagenRequest request) {
+    public ServicioDetalleResponse agregarImagen(Long servicioId, Long usuarioId,
+                                                 ImagenRequest request) {
         Servicio servicio = obtenerEntidad(servicioId);
+        validarPropietario(servicio, usuarioId, "agregar fotos a");
         servicio.agregarImagen(ServicioImagen.builder()
                 .url(request.url())
                 .ordenVisualizacion(request.ordenVisualizacion() != null
@@ -160,8 +173,9 @@ public class ServicioService {
     }
 
     @Transactional
-    public void eliminarImagen(Long servicioId, Long imagenId) {
+    public void eliminarImagen(Long servicioId, Long usuarioId, Long imagenId) {
         Servicio servicio = obtenerEntidad(servicioId);
+        validarPropietario(servicio, usuarioId, "quitar fotos de");
         ServicioImagen imagen = imagenRepository.findById(imagenId)
                 .orElseThrow(() -> RecursoNoEncontradoException.de("Imagen", imagenId));
 
@@ -175,5 +189,28 @@ public class ServicioService {
     public Servicio obtenerEntidad(Long id) {
         return servicioRepository.findById(id)
                 .orElseThrow(() -> RecursoNoEncontradoException.de("Servicio", id));
+    }
+
+    /**
+     * Verifica que quien pide la operacion sea el profesional que publico el
+     * servicio.
+     *
+     * Sin esto, cualquiera que conozca el id de una publicacion podria cambiarle
+     * el precio o darla de baja. La consigna lo pide de forma implicita: dice
+     * que "el usuario QUE CREA dicho producto" es quien maneja su stock.
+     *
+     * Lanza 403 y no 401: el usuario esta identificado, lo que no tiene es
+     * permiso sobre este recurso en particular.
+     */
+    private void validarPropietario(Servicio servicio, Long usuarioId, String accion) {
+        if (usuarioId == null) {
+            throw new OperacionNoPermitidaException(
+                    "Falta indicar quien realiza la operacion");
+        }
+        if (!servicio.getProfesional().getId().equals(usuarioId)) {
+            throw new OperacionNoPermitidaException(
+                    "Solo el profesional que publico el servicio puede " + accion
+                            + " \"" + servicio.getTitulo() + "\"");
+        }
     }
 }

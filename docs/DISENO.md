@@ -171,6 +171,10 @@ cantidad, no crea una fila nueva.
 5. Borrar un servicio es baja lógica. No aparece en listados pero sobrevive en
    las órdenes.
 6. Las contraseñas se guardan hasheadas con BCrypt, nunca en texto plano.
+7. Solo el profesional que publicó un servicio puede modificarlo, ajustarle los
+   cupos, agregarle fotos o darlo de baja. La consigna lo pide de forma
+   implícita: dice que "el usuario **que crea** dicho producto podrá manejar el
+   stock del mismo". Responde 403 FORBIDDEN.
 
 ---
 
@@ -196,11 +200,11 @@ Base: `/api`
 | GET | `/servicios` | listado alfabético por título. Filtros: `?categoriaId=`, `?zonaId=`, `?q=`, `?conCupo=true` | 200 |
 | GET | `/servicios/{id}` | detalle con imágenes, categoría, zonas y profesional | 200 / 404 |
 | POST | `/servicios` | alta de publicación | 201 |
-| PUT | `/servicios/{id}` | modificación | 200 / 404 |
-| DELETE | `/servicios/{id}` | baja lógica | 204 / 404 |
-| PATCH | `/servicios/{id}/cupos` | el profesional ajusta sus cupos | 200 |
-| POST | `/servicios/{id}/imagenes` | agrega una foto | 201 |
-| DELETE | `/servicios/{id}/imagenes/{imagenId}` | quita una foto | 204 |
+| PUT | `/servicios/{id}?usuarioId=` | modificación | 200 / 403 / 404 |
+| DELETE | `/servicios/{id}?usuarioId=` | baja lógica | 204 / 403 / 404 |
+| PATCH | `/servicios/{id}/cupos?usuarioId=` | el profesional ajusta sus cupos | 200 / 403 |
+| POST | `/servicios/{id}/imagenes?usuarioId=` | agrega una foto | 201 / 403 |
+| DELETE | `/servicios/{id}/imagenes/{imagenId}?usuarioId=` | quita una foto | 204 / 403 |
 
 ### Carrito
 | Método | Ruta | Descripción | Éxito |

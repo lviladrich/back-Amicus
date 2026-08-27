@@ -413,7 +413,7 @@
               }
             ],
             "url": {
-              "raw": "{{base}}/api/servicios/{{servicioId}}",
+              "raw": "{{base}}/api/servicios/{{servicioId}}?usuarioId=1",
               "host": [
                 "{{base}}"
               ],
@@ -421,9 +421,15 @@
                 "api",
                 "servicios",
                 "{{servicioId}}"
+              ],
+              "query": [
+                {
+                  "key": "usuarioId",
+                  "value": "1"
+                }
               ]
             },
-            "description": "PUT reemplaza el recurso completo.",
+            "description": "PUT reemplaza el recurso completo. Requiere usuarioId: solo el profesional que publico el servicio puede hacerlo, si no devuelve 403.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"titulo\": \"Instalacion de ventilador de techo\",\n  \"descripcion\": \"Descripcion actualizada.\",\n  \"precio\": 40000.0,\n  \"cuposDisponibles\": 5,\n  \"categoriaId\": 1,\n  \"profesionalId\": 1,\n  \"zonaIds\": [\n    4\n  ]\n}"
@@ -442,7 +448,7 @@
               }
             ],
             "url": {
-              "raw": "{{base}}/api/servicios/{{servicioId}}/cupos",
+              "raw": "{{base}}/api/servicios/{{servicioId}}/cupos?usuarioId=1",
               "host": [
                 "{{base}}"
               ],
@@ -451,9 +457,15 @@
                 "servicios",
                 "{{servicioId}}",
                 "cupos"
+              ],
+              "query": [
+                {
+                  "key": "usuarioId",
+                  "value": "1"
+                }
               ]
             },
-            "description": "PATCH modifica un solo campo.",
+            "description": "PATCH modifica un solo campo. Requiere usuarioId: solo el profesional que publico el servicio puede hacerlo, si no devuelve 403.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"cuposDisponibles\": 7\n}"
@@ -472,7 +484,7 @@
               }
             ],
             "url": {
-              "raw": "{{base}}/api/servicios/{{servicioId}}/imagenes",
+              "raw": "{{base}}/api/servicios/{{servicioId}}/imagenes?usuarioId=1",
               "host": [
                 "{{base}}"
               ],
@@ -481,9 +493,15 @@
                 "servicios",
                 "{{servicioId}}",
                 "imagenes"
+              ],
+              "query": [
+                {
+                  "key": "usuarioId",
+                  "value": "1"
+                }
               ]
             },
-            "description": "",
+            "description": "Requiere usuarioId: solo el profesional que publico el servicio puede hacerlo, si no devuelve 403.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"url\": \"https://ejemplo.com/foto3.jpg\",\n  \"ordenVisualizacion\": 2\n}"
@@ -497,7 +515,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base}}/api/servicios/{{servicioId}}",
+              "raw": "{{base}}/api/servicios/{{servicioId}}?usuarioId=1",
               "host": [
                 "{{base}}"
               ],
@@ -505,9 +523,15 @@
                 "api",
                 "servicios",
                 "{{servicioId}}"
+              ],
+              "query": [
+                {
+                  "key": "usuarioId",
+                  "value": "1"
+                }
               ]
             },
-            "description": "204 NO CONTENT. Baja logica: la fila sobrevive para las ordenes historicas."
+            "description": "204 NO CONTENT. Baja logica: la fila sobrevive para las ordenes historicas. Requiere usuarioId: solo el profesional que publico el servicio puede hacerlo, si no devuelve 403."
           },
           "response": []
         },
@@ -529,6 +553,67 @@
               ]
             },
             "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Modificar la publicacion de OTRO",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/servicios/{{servicioId}}?usuarioId={{usuarioId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "{{servicioId}}"
+              ],
+              "query": [
+                {
+                  "key": "usuarioId",
+                  "value": "{{usuarioId}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Intento de modificacion ajena\",\n  \"descripcion\": \"Este cambio deberia ser rechazado.\",\n  \"precio\": 1.0,\n  \"cuposDisponibles\": 99,\n  \"categoriaId\": 1,\n  \"profesionalId\": 2,\n  \"zonaIds\": [\n    4\n  ]\n}"
+            },
+            "description": "403 FORBIDDEN. El usuario esta identificado pero el servicio no es suyo."
+          },
+          "response": []
+        },
+        {
+          "name": "Dar de baja la publicacion de OTRO",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/servicios/{{servicioId}}?usuarioId={{usuarioId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "{{servicioId}}"
+              ],
+              "query": [
+                {
+                  "key": "usuarioId",
+                  "value": "{{usuarioId}}"
+                }
+              ]
+            },
+            "description": "403 FORBIDDEN."
           },
           "response": []
         }
