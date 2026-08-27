@@ -56,6 +56,33 @@ exception/    excepciones propias y manejador global de errores
 config/       configuración y carga de datos inicial
 ```
 
+## Endpoints
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| POST | `/api/auth/registro` | registra un usuario y le crea el carrito |
+| POST | `/api/auth/login` | valida mail y contraseña |
+| GET | `/api/categorias` | listado de categorías para la home |
+| GET | `/api/zonas` | listado de barrios y partidos |
+| GET | `/api/servicios` | catálogo alfabético. Filtros: `?categoriaId=` `?zonaId=` `?q=` `?conCupo=true` |
+| GET | `/api/servicios/{id}` | detalle con imágenes, categoría, profesional y zonas |
+| POST | `/api/servicios` | publica un servicio |
+| PUT | `/api/servicios/{id}` | modifica una publicación |
+| PATCH | `/api/servicios/{id}/cupos` | ajusta los cupos disponibles |
+| DELETE | `/api/servicios/{id}` | baja lógica |
+| POST | `/api/servicios/{id}/imagenes` | agrega una foto |
+| DELETE | `/api/servicios/{id}/imagenes/{imagenId}` | quita una foto |
+| GET | `/api/carrito?usuarioId=` | contenido con el total calculado |
+| POST | `/api/carrito/items?usuarioId=` | agrega un servicio. 409 si no tiene cupos |
+| PUT | `/api/carrito/items/{id}?usuarioId=` | cambia la cantidad |
+| DELETE | `/api/carrito/items/{id}?usuarioId=` | elimina un ítem |
+| DELETE | `/api/carrito?usuarioId=` | vacía el carrito |
+| POST | `/api/carrito/checkout?usuarioId=` | confirma, descuenta cupos y genera la orden |
+| GET | `/api/ordenes?usuarioId=` | historial de compras |
+| GET | `/api/ordenes/{id}` | detalle de una orden |
+
+Hay una colección de Postman lista para importar en `docs/Amicus.postman_collection.json`.
+
 ## Documentación
 
 - `docs/DISENO.md` — modelo de datos, endpoints, reglas de negocio y reparto de tareas

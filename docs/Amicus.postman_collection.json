@@ -1,0 +1,898 @@
+{
+  "info": {
+    "name": "Amicus - TPO Aplicaciones Interactivas",
+    "description": "Marketplace de servicios del hogar. Levantar la base con 'docker compose up -d' y la aplicacion con './mvnw spring-boot:run' antes de usar esta coleccion.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "usuarioId",
+      "value": "2"
+    },
+    {
+      "key": "servicioId",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Autenticacion",
+      "item": [
+        {
+          "name": "Registro",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/auth/registro",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "registro"
+              ]
+            },
+            "description": "201 CREATED. Crea el usuario y su carrito. La respuesta no incluye la contrasena.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"lucia.v\",\n  \"email\": \"lucia@mail.com\",\n  \"password\": \"secreto123\",\n  \"nombre\": \"Lucia\",\n  \"apellido\": \"Viladrich\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registro con mail repetido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/auth/registro",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "registro"
+              ]
+            },
+            "description": "400 BAD REQUEST.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"otro\",\n  \"email\": \"lucia@mail.com\",\n  \"password\": \"secreto123\",\n  \"nombre\": \"Otro\",\n  \"apellido\": \"Usuario\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registro con datos invalidos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/auth/registro",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "registro"
+              ]
+            },
+            "description": "400 con el detalle campo por campo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"ab\",\n  \"email\": \"no-es-mail\",\n  \"password\": \"123\",\n  \"nombre\": \"\",\n  \"apellido\": \"\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/auth/login",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "200 OK.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"lucia@mail.com\",\n  \"password\": \"secreto123\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login con password incorrecta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/auth/login",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "401 UNAUTHORIZED.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"lucia@mail.com\",\n  \"password\": \"otra\"\n}"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Catalogo",
+      "item": [
+        {
+          "name": "Listar categorias",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/categorias",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "categorias"
+              ]
+            },
+            "description": "Las diez categorias de la carga inicial."
+          },
+          "response": []
+        },
+        {
+          "name": "Listar zonas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/zonas",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "zonas"
+              ]
+            },
+            "description": "Barrios de CABA y partidos del GBA."
+          },
+          "response": []
+        },
+        {
+          "name": "Catalogo completo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/servicios",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "servicios"
+              ]
+            },
+            "description": "Ordenado alfabeticamente. Solo servicios activos."
+          },
+          "response": []
+        },
+        {
+          "name": "Filtrar por categoria",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/servicios?categoriaId=1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "servicios"
+              ],
+              "query": [
+                {
+                  "key": "categoriaId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Filtrar por zona",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/servicios?zonaId=4",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "servicios"
+              ],
+              "query": [
+                {
+                  "key": "zonaId",
+                  "value": "4"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar por texto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/servicios?q=ventilador",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "servicios"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "ventilador"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Solo con cupos disponibles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/servicios?conCupo=true",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "servicios"
+              ],
+              "query": [
+                {
+                  "key": "conCupo",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Detalle de un servicio",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/servicios/{{servicioId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "{{servicioId}}"
+              ]
+            },
+            "description": "Incluye imagenes, categoria, profesional y zonas."
+          },
+          "response": []
+        },
+        {
+          "name": "Servicio inexistente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/servicios/9999",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "9999"
+              ]
+            },
+            "description": "404 NOT FOUND."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Publicaciones",
+      "item": [
+        {
+          "name": "Publicar un servicio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/servicios",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "servicios"
+              ]
+            },
+            "description": "201 CREATED.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Instalacion de ventilador de techo\",\n  \"descripcion\": \"Incluye soporte, cableado y prueba de funcionamiento.\",\n  \"precio\": 25000.0,\n  \"cuposDisponibles\": 3,\n  \"categoriaId\": 1,\n  \"profesionalId\": 1,\n  \"zonaIds\": [\n    4,\n    2\n  ],\n  \"imagenes\": [\n    \"https://ejemplo.com/foto1.jpg\",\n    \"https://ejemplo.com/foto2.jpg\"\n  ]\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Modificar publicacion",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/servicios/{{servicioId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "{{servicioId}}"
+              ]
+            },
+            "description": "PUT reemplaza el recurso completo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Instalacion de ventilador de techo\",\n  \"descripcion\": \"Descripcion actualizada.\",\n  \"precio\": 40000.0,\n  \"cuposDisponibles\": 5,\n  \"categoriaId\": 1,\n  \"profesionalId\": 1,\n  \"zonaIds\": [\n    4\n  ]\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Ajustar cupos",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/servicios/{{servicioId}}/cupos",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "{{servicioId}}",
+                "cupos"
+              ]
+            },
+            "description": "PATCH modifica un solo campo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cuposDisponibles\": 7\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Agregar imagen",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/servicios/{{servicioId}}/imagenes",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "{{servicioId}}",
+                "imagenes"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://ejemplo.com/foto3.jpg\",\n  \"ordenVisualizacion\": 2\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Dar de baja",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/servicios/{{servicioId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "{{servicioId}}"
+              ]
+            },
+            "description": "204 NO CONTENT. Baja logica: la fila sobrevive para las ordenes historicas."
+          },
+          "response": []
+        },
+        {
+          "name": "Publicaciones de un profesional",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/servicios/profesional/1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "profesional",
+                "1"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Carrito",
+      "item": [
+        {
+          "name": "Ver carrito",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/carrito?usuarioId={{usuarioId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ],
+              "query": [
+                {
+                  "key": "usuarioId",
+                  "value": "{{usuarioId}}"
+                }
+              ]
+            },
+            "description": "Devuelve los items con el total ya calculado."
+          },
+          "response": []
+        },
+        {
+          "name": "Agregar al carrito",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/carrito/items?usuarioId={{usuarioId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "usuarioId",
+                  "value": "{{usuarioId}}"
+                }
+              ]
+            },
+            "description": "201 CREATED.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"servicioId\": 1,\n  \"cantidad\": 2\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Agregar servicio SIN CUPOS",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/carrito/items?usuarioId={{usuarioId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "usuarioId",
+                  "value": "{{usuarioId}}"
+                }
+              ]
+            },
+            "description": "409 CONFLICT. Es el caso que menciona la consigna.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"servicioId\": 2,\n  \"cantidad\": 1\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Agregar mas cantidad que cupos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/carrito/items?usuarioId={{usuarioId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "usuarioId",
+                  "value": "{{usuarioId}}"
+                }
+              ]
+            },
+            "description": "400 BAD REQUEST.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"servicioId\": 1,\n  \"cantidad\": 99\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Contratar el propio servicio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/carrito/items?usuarioId=1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "usuarioId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "400 BAD REQUEST.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"servicioId\": 1,\n  \"cantidad\": 1\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cambiar cantidad de un item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/carrito/items/1?usuarioId={{usuarioId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items",
+                "1"
+              ],
+              "query": [
+                {
+                  "key": "usuarioId",
+                  "value": "{{usuarioId}}"
+                }
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cantidad\": 1\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar un item",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/carrito/items/1?usuarioId={{usuarioId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items",
+                "1"
+              ],
+              "query": [
+                {
+                  "key": "usuarioId",
+                  "value": "{{usuarioId}}"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Vaciar el carrito",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/carrito?usuarioId={{usuarioId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ],
+              "query": [
+                {
+                  "key": "usuarioId",
+                  "value": "{{usuarioId}}"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Checkout y ordenes",
+      "item": [
+        {
+          "name": "Checkout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/carrito/checkout?usuarioId={{usuarioId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "checkout"
+              ],
+              "query": [
+                {
+                  "key": "usuarioId",
+                  "value": "{{usuarioId}}"
+                }
+              ]
+            },
+            "description": "201 CREATED. Valida cupos, los descuenta, congela precios en la orden y vacia el carrito. Todo en una transaccion."
+          },
+          "response": []
+        },
+        {
+          "name": "Checkout con carrito vacio",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/carrito/checkout?usuarioId={{usuarioId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "checkout"
+              ],
+              "query": [
+                {
+                  "key": "usuarioId",
+                  "value": "{{usuarioId}}"
+                }
+              ]
+            },
+            "description": "400 BAD REQUEST."
+          },
+          "response": []
+        },
+        {
+          "name": "Historial de compras",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/ordenes?usuarioId={{usuarioId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "ordenes"
+              ],
+              "query": [
+                {
+                  "key": "usuarioId",
+                  "value": "{{usuarioId}}"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Detalle de una orden",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/ordenes/1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "ordenes",
+                "1"
+              ]
+            },
+            "description": "Muestra el precio CONGELADO al momento de la compra, no el actual del servicio."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
