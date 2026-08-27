@@ -54,6 +54,17 @@
 			<scope>runtime</scope>
 		</dependency>
 
+		<!--
+			Solo el modulo de criptografia de Spring Security, para BCrypt.
+			NO se usa spring-boot-starter-security a proposito: ese activaria el
+			login por formulario y bloquearia todos los endpoints, que no es lo
+			que pide la consigna.
+		-->
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-crypto</artifactId>
+		</dependency>
+
 		<!-- Genera getters, setters y constructores en tiempo de compilacion -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
