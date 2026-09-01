@@ -1,6 +1,4 @@
-# Levanta MySQL para quien prefiera usarlo en lugar de H2.
-# Uso:  docker compose up -d
-# Luego: ./mvnw spring-boot:run -Dspring-boot.run.profiles=mysql
+
 services:
   mysql:
     image: mysql:8.4
