@@ -111,8 +111,6 @@ También hay una colección de Postman lista para importar en
 ## Documentación
 
 - `docs/DISENO.md` — modelo de datos, endpoints, reglas de negocio y reparto de tareas
-- `docs/teoria/` — un documento por archivo: qué hace, por qué existe y qué alternativas se descartaron
-  - Empezar por `A` (conceptos fundamentales), `B` (la lógica del negocio) y `C` (mapa de archivos)
 
 ## Equipo
 

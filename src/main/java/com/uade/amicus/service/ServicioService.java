@@ -146,7 +146,7 @@ public class ServicioService {
      * Baja LOGICA.
      *
      * No se borra la fila porque el servicio puede estar referenciado en ordenes
-     * ya confirmadas. Ver docs/teoria/08.
+     * ya confirmadas.
      */
     @Transactional
     public void eliminar(Long id, Long usuarioId) {
