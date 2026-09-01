@@ -1,15 +1,5 @@
 #!/bin/bash
-# ============================================================
-# Amicus - Prueba automatica de toda la API
-#
-# Uso:
-#   1. docker compose up -d
-#   2. ./mvnw spring-boot:run       (en otra terminal, dejarlo corriendo)
-#   3. ./probar-api.sh
-#
-# Recorre el flujo completo del TPO y verifica que cada endpoint
-# devuelva el codigo HTTP correcto, incluidos los casos de error.
-# ============================================================
+
 
 API="http://localhost:8080/api"
 SUFIJO=$$                      # numero unico, para no chocar con datos previos
