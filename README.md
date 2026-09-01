@@ -81,43 +81,8 @@ config/       configuración y carga de datos inicial
 | GET | `/api/ordenes?usuarioId=` | historial de compras |
 | GET | `/api/ordenes/{id}` | detalle de una orden |
 
-## Documentación interactiva de la API
 
-Con la aplicación corriendo:
 
-```
-http://localhost:8080/swagger-ui.html
-```
 
-Lista los 26 endpoints agrupados por área, con sus parámetros, los cuerpos que
-esperan y un botón "Try it out" para ejecutarlos desde el navegador. Se genera
-automáticamente del código, así que no puede quedar desactualizada.
 
-## Cómo probar
 
-Con la aplicación corriendo, en otra terminal:
-
-```bash
-./probar-api.sh
-```
-
-Recorre el flujo completo (registro, login, publicación, catálogo, carrito,
-checkout, precio congelado y baja lógica) y verifica 47 casos, incluidos los de
-error que pide la consigna. Termina diciendo cuántos pasaron.
-
-También hay una colección de Postman lista para importar en
-`docs/Amicus.postman_collection.json`.
-
-## Documentación
-
-- `docs/DISENO.md` — modelo de datos, endpoints, reglas de negocio y reparto de tareas
-
-## Equipo
-
-| Integrante | Responsable de |
-|---|---|
-| | Setup, configuración, Usuario y autenticación |
-| | Categorías, Zonas y carga inicial de datos |
-| | Servicio: alta, modificación y baja |
-| | Imágenes y catálogo (listado, filtros, detalle) |
-| | Carrito, checkout y órdenes |
