@@ -80,6 +80,7 @@ config/       configuración y carga de datos inicial
 | POST | `/api/carrito/checkout?usuarioId=` | confirma, descuenta cupos y genera la orden |
 | GET | `/api/ordenes?usuarioId=` | historial de compras |
 | GET | `/api/ordenes/{id}` | detalle de una orden |
+| PATCH | `/api/ordenes/{id}/cancelar?usuarioId=` | cancela y devuelve los cupos. 403 si no sos el comprador |
 | GET | `/api/servicios/{id}/resenas` | reseñas del servicio, de la más nueva a la más vieja |
 | POST | `/api/servicios/{id}/resenas?usuarioId=` | reseña. 403 si no lo contrataste, 409 si ya lo reseñaste |
 | DELETE | `/api/resenas/{id}?usuarioId=` | borra tu reseña. 403 si no sos el autor |

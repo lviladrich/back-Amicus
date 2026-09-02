@@ -77,7 +77,18 @@ La calificación aparece en el detalle del servicio y no en el resumen del
 catálogo a propósito: es una consulta agregada por servicio, y ponerla en el
 listado significaría una consulta extra por cada fila devuelta.
 
-### 1.7 Base de datos
+### 1.7 Cancelar no borra, cambia de estado
+
+`EstadoOrden` ya tenía `CANCELADA` desde el primer día y ningún endpoint la
+usaba. Cancelar es la operación inversa exacta del checkout: devuelve los cupos
+y es igual de transaccional, porque no puede quedar una orden cancelada con los
+cupos de solo algunas de sus líneas ya devueltos.
+
+La orden no se borra ni se le cambia el total: sigue en el historial. Un
+comprobante cancelado sigue siendo un comprobante, y el usuario tiene que poder
+ver que existió. Por eso el verbo es `PATCH` y no `DELETE`.
+
+### 1.8 Base de datos
 
 MySQL 8.4 como base principal, levantado con `docker compose up -d` para que los
 cinco integrantes tengan la misma versión y las mismas credenciales sin instalar
@@ -232,6 +243,10 @@ que nadie pueda repetir su opinión y correr el promedio.
    incluya (403), nadie puede reseñar su propia publicación (400), y se admite
    una sola reseña por persona y servicio (409). Solo el autor puede borrar la
    suya (403).
+10. Solo el usuario que hizo la compra puede cancelar la orden, y solo una vez.
+    Cancelar devuelve los cupos, es transaccional, y deja la orden en el
+    historial con su total intacto. Respuestas: 403 si no es el comprador, 400
+    si ya estaba cancelada.
 
 ---
 
@@ -281,6 +296,7 @@ modificar significa "dejala como estaba".
 |---|---|---|---|
 | GET | `/ordenes` | historial del usuario | 200 |
 | GET | `/ordenes/{id}` | detalle de una orden | 200 / 404 |
+| PATCH | `/ordenes/{id}/cancelar` | cancela y devuelve los cupos | 200 / 400 / 403 / 404 |
 
 ### Reseñas
 | Método | Ruta | Descripción | Éxito |
@@ -368,3 +384,19 @@ Mientras tanto, planificamos para el 7 de septiembre.
 | Eliminación de publicación | `DELETE /servicios/{id}` |
 | Capa de persistencia | JPA/Hibernate sobre H2 o MySQL |
 | API REST completa o filtrada | filtros por categoría, zona y texto |
+
+---
+
+## 9. Funcionalidades extra
+
+La consigna no las pide. Están porque son lo que cualquiera espera de un
+ecommerce de servicios, y porque cada una se resolvió sin agregar complejidad:
+ninguna necesitó tocar el checkout ni inventar entidades de más.
+
+| Extra | Qué agrega | Costo |
+|---|---|---|
+| Contratación recurrente | `Frecuencia` en el carrito y congelada en la orden | un enum y una columna en dos tablas |
+| Reseñas con promedio | entidad `Resena` con sus tres reglas, y la calificación en el detalle | una entidad y su capa completa |
+| Cancelación de órdenes | `PATCH /ordenes/{id}/cancelar`, devuelve los cupos | un método y un endpoint; usa el estado `CANCELADA` que ya existía sin usarse |
+
+Las tres están cubiertas en `probar-api.sh`, secciones 11 a 13.

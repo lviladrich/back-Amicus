@@ -269,7 +269,22 @@ print('     -> null y no 0: un servicio sin resenias no vale cero estrellas')
 "
 
 # ------------------------------------------------------------
-titulo "13. PEDIDOS MAL FORMADOS"
+titulo "13. CANCELAR UNA ORDEN"
+probar "Rechazar que otro cancele"              403 PATCH "/ordenes/$ORDEN_REC/cancelar?usuarioId=$VEC"
+echo "     -> $(campo mensaje)"
+probar "Cancelar una orden inexistente da 404"  404 PATCH "/ordenes/999999/cancelar?usuarioId=$CLI"
+
+probar "El dueno cancela su orden"              200 PATCH "/ordenes/$ORDEN_REC/cancelar?usuarioId=$CLI"
+echo "     -> estado: $(campo estado), total intacto: \$$(campo total)"
+probar "Los cupos volvieron a 7"                200 GET "/servicios/$SIN_CUPOS"
+echo "     -> cupos: $(campo cuposDisponibles)"
+probar "Rechazar la segunda cancelacion"        400 PATCH "/ordenes/$ORDEN_REC/cancelar?usuarioId=$CLI"
+echo "     -> $(campo mensaje)"
+probar "La orden cancelada sigue en el historial" 200 GET "/ordenes/$ORDEN_REC"
+echo "     -> un comprobante cancelado sigue siendo un comprobante"
+
+# ------------------------------------------------------------
+titulo "14. PEDIDOS MAL FORMADOS"
 probar "Metodo no permitido da 405"             405 DELETE "/categorias/1"
 probar "JSON malformado da 400"                 400 POST "/auth/login" '{esto no es json}'
 probar "Falta parametro obligatorio da 400"     400 GET "/carrito"
