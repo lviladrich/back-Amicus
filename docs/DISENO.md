@@ -41,7 +41,54 @@ La consigna pide explícitamente `@ManyToMany`. Las zonas de cobertura lo
 justifican de verdad: un electricista trabaja en varios barrios y en cada barrio
 trabajan varios profesionales.
 
-### 1.5 Base de datos
+### 1.5 La recurrencia reusa la cantidad
+
+Un servicio no se compra por unidad, se contrata por visita. `CarritoItem` ya
+multiplicaba el precio por `cantidad` y ya descontaba esa cantidad de cupos, asi
+que contratar ocho visitas era mecánicamente idéntico a `cantidad = 8`. Lo que
+faltaba no era la lógica sino el significado: `Frecuencia` (`UNICA`, `SEMANAL`,
+`QUINCENAL`, `MENSUAL`) dice cada cuánto se repiten.
+
+La decisión que había que tomar era si ocho semanas consumen ocho cupos o uno.
+Consumen ocho: un cupo es una visita que el profesional se compromete a tomar, y
+así no hubo que separar precio de disponibilidad ni tocar el checkout.
+
+La frecuencia no entra en el cálculo del total. Ocho visitas cuestan lo mismo
+sean semanales o mensuales; lo que cambia es cuándo se prestan.
+
+Una línea tiene una sola frecuencia, porque la restricción única sobre
+`(carrito_id, servicio_id)` impide que el mismo servicio aparezca dos veces. Si
+se agrega de nuevo con otra frecuencia, la nueva redefine la línea.
+
+### 1.6 Solo reseña quien contrató
+
+En un marketplace de oficios la reputación es el producto: nadie deja entrar a
+un desconocido a su casa sin ver antes qué opinó el resto. La regla que le da
+valor al promedio es que solo pueda escribir quien tenga una orden `CONFIRMADA`
+que incluya el servicio. Una orden cancelada no habilita, porque el trabajo no
+se prestó.
+
+El promedio lo calcula la base con `avg()`, no Java: traer todas las reseñas
+para devolver un número sería mover cientos de filas por la red. Devuelve `null`
+cuando no hay ninguna, y no se reemplaza por `0`: un servicio nuevo no vale cero
+estrellas, no tiene calificación, y son dos cosas distintas.
+
+La calificación aparece en el detalle del servicio y no en el resumen del
+catálogo a propósito: es una consulta agregada por servicio, y ponerla en el
+listado significaría una consulta extra por cada fila devuelta.
+
+### 1.7 Cancelar no borra, cambia de estado
+
+`EstadoOrden` ya tenía `CANCELADA` desde el primer día y ningún endpoint la
+usaba. Cancelar es la operación inversa exacta del checkout: devuelve los cupos
+y es igual de transaccional, porque no puede quedar una orden cancelada con los
+cupos de solo algunas de sus líneas ya devueltos.
+
+La orden no se borra ni se le cambia el total: sigue en el historial. Un
+comprobante cancelado sigue siendo un comprobante, y el usuario tiene que poder
+ver que existió. Por eso el verbo es `PATCH` y no `DELETE`.
+
+### 1.8 Base de datos
 
 MySQL 8.4 como base principal, levantado con `docker compose up -d` para que los
 cinco integrantes tengan la misma versión y las mismas credenciales sin instalar
@@ -132,7 +179,8 @@ Un carrito abierto por usuario. Se crea al registrarse.
 | id | BIGINT | PK |
 | carrito_id | BIGINT | FK carritos, NOT NULL, `@ManyToOne` |
 | servicio_id | BIGINT | FK servicios, NOT NULL, `@ManyToOne` |
-| cantidad | INT | NOT NULL, mayor a 0 |
+| cantidad | INT | NOT NULL, mayor a 0. Son visitas |
+| frecuencia | VARCHAR(20) | NOT NULL, UNICA / SEMANAL / QUINCENAL / MENSUAL |
 
 UNIQUE (carrito_id, servicio_id): agregar dos veces el mismo servicio suma
 cantidad, no crea una fila nueva.
@@ -153,9 +201,23 @@ cantidad, no crea una fila nueva.
 | orden_id | BIGINT | FK ordenes, NOT NULL, `@ManyToOne` |
 | servicio_id | BIGINT | FK servicios, NOT NULL |
 | tituloServicio | VARCHAR(120) | copia congelada |
-| cantidad | INT | NOT NULL |
+| cantidad | INT | NOT NULL. Son visitas |
+| frecuencia | VARCHAR(20) | NOT NULL, copia congelada |
 | precioUnitario | DECIMAL(12,2) | copia congelada |
 | subtotal | DECIMAL(12,2) | cantidad por precioUnitario |
+
+### resenas
+| Campo | Tipo | Restricciones |
+|---|---|---|
+| id | BIGINT | PK |
+| servicio_id | BIGINT | FK servicios, NOT NULL, `@ManyToOne` |
+| autor_id | BIGINT | FK usuarios, NOT NULL, `@ManyToOne` |
+| puntaje | INT | NOT NULL, de 1 a 5 |
+| comentario | VARCHAR(1000) | opcional: se puede calificar sin escribir |
+| fecha | TIMESTAMP | NOT NULL |
+
+UNIQUE (servicio_id, autor_id): una sola reseña por persona y por servicio, para
+que nadie pueda repetir su opinión y correr el promedio.
 
 ---
 
@@ -175,6 +237,16 @@ cantidad, no crea una fila nueva.
    cupos, agregarle fotos o darlo de baja. La consigna lo pide de forma
    implícita: dice que "el usuario **que crea** dicho producto podrá manejar el
    stock del mismo". Responde 403 FORBIDDEN.
+8. Una frecuencia recurrente necesita al menos 2 visitas. "1 visita SEMANAL" no
+   quiere decir nada: no hay nada que repetir. Respuesta: 400.
+9. Solo puede reseñar un servicio quien tenga una orden `CONFIRMADA` que lo
+   incluya (403), nadie puede reseñar su propia publicación (400), y se admite
+   una sola reseña por persona y servicio (409). Solo el autor puede borrar la
+   suya (403).
+10. Solo el usuario que hizo la compra puede cancelar la orden, y solo una vez.
+    Cancelar devuelve los cupos, es transaccional, y deja la orden en el
+    historial con su total intacto. Respuestas: 403 si no es el comprador, 400
+    si ya estaba cancelada.
 
 ---
 
@@ -210,17 +282,31 @@ Base: `/api`
 | Método | Ruta | Descripción | Éxito |
 |---|---|---|---|
 | GET | `/carrito` | contenido y total calculado | 200 |
-| POST | `/carrito/items` | agrega servicio con cantidad | 201 / 409 sin cupo |
-| PUT | `/carrito/items/{id}` | cambia cantidad | 200 |
+| POST | `/carrito/items` | agrega servicio con visitas y frecuencia | 201 / 409 sin cupo |
+| PUT | `/carrito/items/{id}` | cambia visitas y frecuencia | 200 |
 | DELETE | `/carrito/items/{id}` | elimina un ítem | 204 |
 | DELETE | `/carrito` | vacía el carrito | 204 |
 | POST | `/carrito/checkout` | confirma, descuenta cupos, genera orden | 201 |
+
+`frecuencia` es opcional en los dos primeros: al agregar se asume `UNICA`, y al
+modificar significa "dejala como estaba".
 
 ### Órdenes
 | Método | Ruta | Descripción | Éxito |
 |---|---|---|---|
 | GET | `/ordenes` | historial del usuario | 200 |
 | GET | `/ordenes/{id}` | detalle de una orden | 200 / 404 |
+| PATCH | `/ordenes/{id}/cancelar` | cancela y devuelve los cupos | 200 / 400 / 403 / 404 |
+
+### Reseñas
+| Método | Ruta | Descripción | Éxito |
+|---|---|---|---|
+| GET | `/servicios/{id}/resenas` | reseñas del servicio, la más nueva primero | 200 / 404 |
+| POST | `/servicios/{id}/resenas` | califica de 1 a 5 con comentario opcional | 201 / 400 / 403 / 409 |
+| DELETE | `/resenas/{id}` | el autor borra la suya | 204 / 403 / 404 |
+
+El promedio y la cantidad de reseñas se devuelven en el detalle del servicio,
+como `promedioPuntaje` y `cantidadResenas`.
 
 ---
 
@@ -298,3 +384,19 @@ Mientras tanto, planificamos para el 7 de septiembre.
 | Eliminación de publicación | `DELETE /servicios/{id}` |
 | Capa de persistencia | JPA/Hibernate sobre H2 o MySQL |
 | API REST completa o filtrada | filtros por categoría, zona y texto |
+
+---
+
+## 9. Funcionalidades extra
+
+La consigna no las pide. Están porque son lo que cualquiera espera de un
+ecommerce de servicios, y porque cada una se resolvió sin agregar complejidad:
+ninguna necesitó tocar el checkout ni inventar entidades de más.
+
+| Extra | Qué agrega | Costo |
+|---|---|---|
+| Contratación recurrente | `Frecuencia` en el carrito y congelada en la orden | un enum y una columna en dos tablas |
+| Reseñas con promedio | entidad `Resena` con sus tres reglas, y la calificación en el detalle | una entidad y su capa completa |
+| Cancelación de órdenes | `PATCH /ordenes/{id}/cancelar`, devuelve los cupos | un método y un endpoint; usa el estado `CANCELADA` que ya existía sin usarse |
+
+Las tres están cubiertas en `probar-api.sh`, secciones 11 a 13.

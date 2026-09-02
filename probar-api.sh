@@ -194,7 +194,97 @@ echo "     -> total de la orden: \$$(campo total)"
 probar "Historial de compras"                 200 GET "/ordenes?usuarioId=$CLI"
 
 # ------------------------------------------------------------
-titulo "11. PEDIDOS MAL FORMADOS"
+titulo "11. RECURRENCIA"
+echo "  El servicio $SIN_CUPOS quedo con 7 cupos. Se contrata semanalmente:"
+probar "Rechazar recurrencia de 1 sola visita"  400 POST "/carrito/items?usuarioId=$CLI" \
+  "{\"servicioId\":$SIN_CUPOS,\"cantidad\":1,\"frecuencia\":\"SEMANAL\"}"
+echo "     -> $(campo mensaje)"
+
+probar "Contratar 2 visitas SEMANAL"            201 POST "/carrito/items?usuarioId=$CLI" \
+  "{\"servicioId\":$SIN_CUPOS,\"cantidad\":2,\"frecuencia\":\"SEMANAL\"}"
+python3 -c "
+import json
+d = json.load(open('/tmp/amicus_resp.json'))
+for i in d['items']:
+    print('     -> %s x%s %s = \$%s' % (i['titulo'], i['cantidad'], i['frecuencia'], i['subtotal']))
+print('     -> la frecuencia no cambia el precio, solo cuando se presta')
+"
+# El id del item se lee del GET y no de la respuesta del POST: al agregar una
+# linea nueva, el POST la devuelve con id null porque todavia no se hizo flush.
+probar "Ver el carrito para tomar el id"        200 GET "/carrito?usuarioId=$CLI"
+ITEM_REC=$(python3 -c "import json;print(json.load(open('/tmp/amicus_resp.json'))['items'][0]['id'])")
+probar "Cambiar la frecuencia a MENSUAL"        200 PUT "/carrito/items/$ITEM_REC?usuarioId=$CLI" \
+  '{"cantidad":2,"frecuencia":"MENSUAL"}'
+echo "     -> frecuencia: $(python3 -c "import json;print(json.load(open('/tmp/amicus_resp.json'))['items'][0]['frecuencia'])")"
+
+probar "Confirmar la contratacion recurrente"   201 POST "/carrito/checkout?usuarioId=$CLI"
+ORDEN_REC=$(campo id)
+python3 -c "
+import json
+d = json.load(open('/tmp/amicus_resp.json'))
+for i in d['items']:
+    print('     -> la orden congelo la frecuencia: %s' % i['frecuencia'])
+"
+probar "Se descontaron 2 de los 7 cupos"        200 GET "/servicios/$SIN_CUPOS"
+echo "     -> cupos: $(campo cuposDisponibles)"
+
+# ------------------------------------------------------------
+titulo "12. RESENIAS"
+probar "Registrar a un vecino que no contrato"  201 POST "/auth/registro" \
+  "{\"username\":\"vec$SUFIJO\",\"email\":\"vec$SUFIJO@mail.com\",\"password\":\"secreto123\",\"nombre\":\"Vecino\",\"apellido\":\"Curioso\"}"
+VEC=$(campo id)
+
+probar "Rechazar resenia del propio dueno"      400 POST "/servicios/$SERV/resenas?usuarioId=$PRO" \
+  '{"puntaje":5,"comentario":"Me califico a mi mismo"}'
+echo "     -> $(campo mensaje)"
+
+probar "Rechazar a quien no lo contrato"        403 POST "/servicios/$SERV/resenas?usuarioId=$VEC" \
+  '{"puntaje":1,"comentario":"Nunca lo use pero opino"}'
+echo "     -> $(campo mensaje)"
+
+probar "Rechazar puntaje fuera de 1 a 5"        400 POST "/servicios/$SERV/resenas?usuarioId=$CLI" \
+  '{"puntaje":9,"comentario":"Once de diez"}'
+
+probar "La clienta que SI contrato resenia"     201 POST "/servicios/$SERV/resenas?usuarioId=$CLI" \
+  '{"puntaje":4,"comentario":"Llego puntual y dejo todo limpio."}'
+RESENIA=$(campo id)
+echo "     -> puntaje $(campo puntaje) de $(campo autor)"
+
+probar "Rechazar la segunda resenia del mismo"  409 POST "/servicios/$SERV/resenas?usuarioId=$CLI" \
+  '{"puntaje":1,"comentario":"Me arrepenti"}'
+echo "     -> $(campo mensaje)"
+
+probar "Listar las resenias del servicio"       200 GET "/servicios/$SERV/resenas"
+probar "El detalle muestra la calificacion"     200 GET "/servicios/$SERV"
+echo "     -> promedio: $(campo promedioPuntaje) sobre $(campo cantidadResenas) resenia(s)"
+
+probar "Rechazar que otro borre la resenia"     403 DELETE "/resenas/$RESENIA?usuarioId=$VEC"
+probar "El autor SI puede borrar la suya"       204 DELETE "/resenas/$RESENIA?usuarioId=$CLI"
+probar "Sin resenias el promedio es nulo"       200 GET "/servicios/$SERV"
+python3 -c "
+import json
+p = json.load(open('/tmp/amicus_resp.json'))['promedioPuntaje']
+print('     -> promedio: %s' % ('null' if p is None else p))
+print('     -> null y no 0: un servicio sin resenias no vale cero estrellas')
+"
+
+# ------------------------------------------------------------
+titulo "13. CANCELAR UNA ORDEN"
+probar "Rechazar que otro cancele"              403 PATCH "/ordenes/$ORDEN_REC/cancelar?usuarioId=$VEC"
+echo "     -> $(campo mensaje)"
+probar "Cancelar una orden inexistente da 404"  404 PATCH "/ordenes/999999/cancelar?usuarioId=$CLI"
+
+probar "El dueno cancela su orden"              200 PATCH "/ordenes/$ORDEN_REC/cancelar?usuarioId=$CLI"
+echo "     -> estado: $(campo estado), total intacto: \$$(campo total)"
+probar "Los cupos volvieron a 7"                200 GET "/servicios/$SIN_CUPOS"
+echo "     -> cupos: $(campo cuposDisponibles)"
+probar "Rechazar la segunda cancelacion"        400 PATCH "/ordenes/$ORDEN_REC/cancelar?usuarioId=$CLI"
+echo "     -> $(campo mensaje)"
+probar "La orden cancelada sigue en el historial" 200 GET "/ordenes/$ORDEN_REC"
+echo "     -> un comprobante cancelado sigue siendo un comprobante"
+
+# ------------------------------------------------------------
+titulo "14. PEDIDOS MAL FORMADOS"
 probar "Metodo no permitido da 405"             405 DELETE "/categorias/1"
 probar "JSON malformado da 400"                 400 POST "/auth/login" '{esto no es json}'
 probar "Falta parametro obligatorio da 400"     400 GET "/carrito"

@@ -10,11 +10,14 @@ import lombok.Setter;
 import java.math.BigDecimal;
 
 /**
- * Una linea del carrito: un servicio con una cantidad.
+ * Una linea del carrito: un servicio, una cantidad de visitas y cada cuanto se
+ * repiten.
  *
  * La restriccion unica sobre (carrito_id, servicio_id) evita que el mismo
  * servicio aparezca dos veces: agregarlo de nuevo suma cantidad en la linea que
- * ya existe.
+ * ya existe. Por eso una linea tiene una sola frecuencia: si se agrega el mismo
+ * servicio con otra, la nueva reemplaza a la anterior en vez de abrir una
+ * segunda linea.
  */
 @Entity
 @Table(
@@ -43,10 +46,25 @@ public class CarritoItem {
     @JoinColumn(name = "servicio_id", nullable = false)
     private Servicio servicio;
 
+    /** Cantidad de visitas contratadas. Cada visita consume un cupo. */
     @Column(nullable = false)
     private Integer cantidad;
 
-    /** Se calcula con el precio actual del servicio, no con uno guardado. */
+    /**
+     * Cada cuanto se repiten esas visitas. UNICA por defecto, asi una linea sin
+     * recurrencia se comporta igual que antes de existir este campo.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private Frecuencia frecuencia = Frecuencia.UNICA;
+
+    /**
+     * Se calcula con el precio actual del servicio, no con uno guardado.
+     *
+     * La frecuencia no entra en la cuenta: ocho visitas cuestan lo mismo sean
+     * semanales o mensuales. Lo que cambia es cuando se prestan, no el precio.
+     */
     public BigDecimal calcularSubtotal() {
         return servicio.getPrecio().multiply(BigDecimal.valueOf(cantidad));
     }

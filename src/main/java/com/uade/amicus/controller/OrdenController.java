@@ -34,4 +34,16 @@ public class OrdenController {
     public ResponseEntity<OrdenResponse> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(checkoutService.buscarPorId(id));
     }
+
+    /**
+     * PATCH y no DELETE: cancelar no borra la orden, le cambia el estado. La
+     * orden sigue existiendo en el historial.
+     */
+    @Operation(summary = "Cancelar una orden",
+            description = "Pasa la orden a estado CANCELADA y devuelve los cupos a cada servicio, que es la operacion inversa del checkout. La orden no se borra ni cambia su total: sigue en el historial. Devuelve 403 si el usuario no es quien hizo la compra y 400 si ya estaba cancelada.")
+    @PatchMapping("/{id}/cancelar")
+    public ResponseEntity<OrdenResponse> cancelar(@PathVariable Long id,
+                                                  @RequestParam Long usuarioId) {
+        return ResponseEntity.ok(checkoutService.cancelar(id, usuarioId));
+    }
 }

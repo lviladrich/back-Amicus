@@ -10,6 +10,7 @@ public record CarritoItemResponse(
         String titulo,
         BigDecimal precioUnitario,
         Integer cantidad,
+        String frecuencia,
         BigDecimal subtotal,
         Integer cuposDisponibles,
         boolean disponible
@@ -21,6 +22,7 @@ public record CarritoItemResponse(
                 item.getServicio().getTitulo(),
                 item.getServicio().getPrecio(),
                 item.getCantidad(),
+                item.getFrecuencia().name(),
                 item.calcularSubtotal(),
                 item.getServicio().getCuposDisponibles(),
                 item.getServicio().tieneCuposPara(item.getCantidad())

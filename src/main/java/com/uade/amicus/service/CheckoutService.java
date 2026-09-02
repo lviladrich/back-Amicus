@@ -2,6 +2,7 @@ package com.uade.amicus.service;
 
 import com.uade.amicus.dto.response.OrdenResponse;
 import com.uade.amicus.exception.ConflictoException;
+import com.uade.amicus.exception.OperacionNoPermitidaException;
 import com.uade.amicus.exception.RecursoNoEncontradoException;
 import com.uade.amicus.exception.ReglaDeNegocioException;
 import com.uade.amicus.model.Carrito;
@@ -108,6 +109,44 @@ public class CheckoutService {
         carrito.vaciar();
 
         return OrdenResponse.desde(guardada);
+    }
+
+    /**
+     * Cancela una orden y devuelve los cupos al servicio.
+     *
+     * Es la operacion inversa exacta del checkout, y por eso tambien es
+     * @Transactional: si devolver los cupos de un item fallara, no puede quedar
+     * la orden cancelada con los cupos de las otras lineas ya devueltos.
+     *
+     * La orden NO se borra ni se le cambia el total: pasa a estado CANCELADA y
+     * sigue en el historial. Un comprobante cancelado sigue siendo un
+     * comprobante, y el usuario tiene que poder ver que existio.
+     *
+     * Solo el usuario que hizo la compra puede cancelarla. Con la identidad
+     * viajando como parametro esto es lo maximo que se puede validar; con un
+     * token JWT el usuarioId saldria del token y no del pedido.
+     */
+    @Transactional
+    public OrdenResponse cancelar(Long id, Long usuarioId) {
+        Orden orden = ordenRepository.buscarConItems(id)
+                .orElseThrow(() -> RecursoNoEncontradoException.de("Orden", id));
+
+        if (usuarioId == null || !orden.getUsuario().getId().equals(usuarioId)) {
+            throw new OperacionNoPermitidaException(
+                    "Solo el usuario que hizo la compra puede cancelar la orden " + id);
+        }
+        if (orden.getEstado() == EstadoOrden.CANCELADA) {
+            throw new ReglaDeNegocioException("La orden " + id + " ya estaba cancelada");
+        }
+
+        // Cada visita que se habia descontado vuelve a estar disponible.
+        for (OrdenItem item : orden.getItems()) {
+            Servicio servicio = item.getServicio();
+            servicio.setCuposDisponibles(servicio.getCuposDisponibles() + item.getCantidad());
+        }
+
+        orden.setEstado(EstadoOrden.CANCELADA);
+        return OrdenResponse.desde(orden);
     }
 
     @Transactional(readOnly = true)

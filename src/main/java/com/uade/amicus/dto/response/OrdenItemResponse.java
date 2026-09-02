@@ -7,14 +7,16 @@ import java.math.BigDecimal;
 /**
  * Linea de una orden.
  *
- * Devuelve el titulo y el precio CONGELADOS, no los actuales del servicio. Es
- * la razon de ser de OrdenItem: el comprobante muestra lo que se pago.
+ * Devuelve el titulo, el precio y la frecuencia CONGELADOS, no los actuales del
+ * servicio. Es la razon de ser de OrdenItem: el comprobante muestra lo que se
+ * contrato y lo que se pago.
  */
 public record OrdenItemResponse(
         Long id,
         Long servicioId,
         String titulo,
         Integer cantidad,
+        String frecuencia,
         BigDecimal precioUnitario,
         BigDecimal subtotal
 ) {
@@ -24,6 +26,7 @@ public record OrdenItemResponse(
                 item.getServicio().getId(),
                 item.getTituloServicio(),
                 item.getCantidad(),
+                item.getFrecuencia().name(),
                 item.getPrecioUnitario(),
                 item.getSubtotal()
         );
