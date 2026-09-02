@@ -194,7 +194,42 @@ echo "     -> total de la orden: \$$(campo total)"
 probar "Historial de compras"                 200 GET "/ordenes?usuarioId=$CLI"
 
 # ------------------------------------------------------------
-titulo "11. PEDIDOS MAL FORMADOS"
+titulo "11. RECURRENCIA"
+echo "  El servicio $SIN_CUPOS quedo con 7 cupos. Se contrata semanalmente:"
+probar "Rechazar recurrencia de 1 sola visita"  400 POST "/carrito/items?usuarioId=$CLI" \
+  "{\"servicioId\":$SIN_CUPOS,\"cantidad\":1,\"frecuencia\":\"SEMANAL\"}"
+echo "     -> $(campo mensaje)"
+
+probar "Contratar 2 visitas SEMANAL"            201 POST "/carrito/items?usuarioId=$CLI" \
+  "{\"servicioId\":$SIN_CUPOS,\"cantidad\":2,\"frecuencia\":\"SEMANAL\"}"
+python3 -c "
+import json
+d = json.load(open('/tmp/amicus_resp.json'))
+for i in d['items']:
+    print('     -> %s x%s %s = \$%s' % (i['titulo'], i['cantidad'], i['frecuencia'], i['subtotal']))
+print('     -> la frecuencia no cambia el precio, solo cuando se presta')
+"
+# El id del item se lee del GET y no de la respuesta del POST: al agregar una
+# linea nueva, el POST la devuelve con id null porque todavia no se hizo flush.
+probar "Ver el carrito para tomar el id"        200 GET "/carrito?usuarioId=$CLI"
+ITEM_REC=$(python3 -c "import json;print(json.load(open('/tmp/amicus_resp.json'))['items'][0]['id'])")
+probar "Cambiar la frecuencia a MENSUAL"        200 PUT "/carrito/items/$ITEM_REC?usuarioId=$CLI" \
+  '{"cantidad":2,"frecuencia":"MENSUAL"}'
+echo "     -> frecuencia: $(python3 -c "import json;print(json.load(open('/tmp/amicus_resp.json'))['items'][0]['frecuencia'])")"
+
+probar "Confirmar la contratacion recurrente"   201 POST "/carrito/checkout?usuarioId=$CLI"
+ORDEN_REC=$(campo id)
+python3 -c "
+import json
+d = json.load(open('/tmp/amicus_resp.json'))
+for i in d['items']:
+    print('     -> la orden congelo la frecuencia: %s' % i['frecuencia'])
+"
+probar "Se descontaron 2 de los 7 cupos"        200 GET "/servicios/$SIN_CUPOS"
+echo "     -> cupos: $(campo cuposDisponibles)"
+
+# ------------------------------------------------------------
+titulo "12. PEDIDOS MAL FORMADOS"
 probar "Metodo no permitido da 405"             405 DELETE "/categorias/1"
 probar "JSON malformado da 400"                 400 POST "/auth/login" '{esto no es json}'
 probar "Falta parametro obligatorio da 400"     400 GET "/carrito"

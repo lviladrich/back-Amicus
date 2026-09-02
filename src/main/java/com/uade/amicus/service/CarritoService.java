@@ -8,6 +8,7 @@ import com.uade.amicus.exception.RecursoNoEncontradoException;
 import com.uade.amicus.exception.ReglaDeNegocioException;
 import com.uade.amicus.model.Carrito;
 import com.uade.amicus.model.CarritoItem;
+import com.uade.amicus.model.Frecuencia;
 import com.uade.amicus.model.Servicio;
 import com.uade.amicus.repository.CarritoItemRepository;
 import com.uade.amicus.repository.CarritoRepository;
@@ -86,12 +87,19 @@ public class CarritoService {
                             + servicio.getTitulo() + "\"");
         }
 
+        Frecuencia frecuencia = request.frecuenciaOUnica();
+        validarRecurrencia(frecuencia, cantidadFinal);
+
         if (existente != null) {
             existente.setCantidad(cantidadFinal);
+            // La frecuencia recibida redefine la linea: no se pueden convivir dos
+            // recurrencias distintas del mismo servicio en un solo carrito.
+            existente.setFrecuencia(frecuencia);
         } else {
             carrito.agregarItem(CarritoItem.builder()
                     .servicio(servicio)
                     .cantidad(request.cantidad())
+                    .frecuencia(frecuencia)
                     .build());
         }
 
@@ -110,7 +118,14 @@ public class CarritoService {
                             + item.getServicio().getTitulo() + "\"");
         }
 
+        // Frecuencia nula significa "dejala como estaba".
+        Frecuencia frecuencia = request.frecuencia() != null
+                ? request.frecuencia()
+                : item.getFrecuencia();
+        validarRecurrencia(frecuencia, request.cantidad());
+
         item.setCantidad(request.cantidad());
+        item.setFrecuencia(frecuencia);
         return CarritoResponse.desde(carrito);
     }
 
@@ -141,6 +156,22 @@ public class CarritoService {
      * Verifica que el item pedido pertenezca al carrito de quien lo pide.
      * Sin esto, un usuario podria borrar items del carrito de otro pasando su id.
      */
+    /**
+     * Una recurrencia de una sola visita no es una recurrencia.
+     *
+     * Sin esta validacion se podria guardar "1 visita SEMANAL", que no quiere
+     * decir nada: no hay nada que repetir. Para contratar una sola vez existe
+     * UNICA, y el estado invalido queda directamente fuera de la base.
+     */
+    private void validarRecurrencia(Frecuencia frecuencia, int cantidad) {
+        if (frecuencia.esRecurrente() && cantidad < 2) {
+            throw new ReglaDeNegocioException(
+                    "Una contratacion " + frecuencia.name().toLowerCase()
+                            + " necesita al menos 2 visitas. Para contratar una sola vez, "
+                            + "usa la frecuencia UNICA");
+        }
+    }
+
     private CarritoItem buscarItemDelCarrito(Carrito carrito, Long itemId) {
         return carrito.getItems().stream()
                 .filter(item -> item.getId().equals(itemId))

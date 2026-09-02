@@ -41,7 +41,26 @@ La consigna pide explícitamente `@ManyToMany`. Las zonas de cobertura lo
 justifican de verdad: un electricista trabaja en varios barrios y en cada barrio
 trabajan varios profesionales.
 
-### 1.5 Base de datos
+### 1.5 La recurrencia reusa la cantidad
+
+Un servicio no se compra por unidad, se contrata por visita. `CarritoItem` ya
+multiplicaba el precio por `cantidad` y ya descontaba esa cantidad de cupos, asi
+que contratar ocho visitas era mecánicamente idéntico a `cantidad = 8`. Lo que
+faltaba no era la lógica sino el significado: `Frecuencia` (`UNICA`, `SEMANAL`,
+`QUINCENAL`, `MENSUAL`) dice cada cuánto se repiten.
+
+La decisión que había que tomar era si ocho semanas consumen ocho cupos o uno.
+Consumen ocho: un cupo es una visita que el profesional se compromete a tomar, y
+así no hubo que separar precio de disponibilidad ni tocar el checkout.
+
+La frecuencia no entra en el cálculo del total. Ocho visitas cuestan lo mismo
+sean semanales o mensuales; lo que cambia es cuándo se prestan.
+
+Una línea tiene una sola frecuencia, porque la restricción única sobre
+`(carrito_id, servicio_id)` impide que el mismo servicio aparezca dos veces. Si
+se agrega de nuevo con otra frecuencia, la nueva redefine la línea.
+
+### 1.6 Base de datos
 
 MySQL 8.4 como base principal, levantado con `docker compose up -d` para que los
 cinco integrantes tengan la misma versión y las mismas credenciales sin instalar
@@ -132,7 +151,8 @@ Un carrito abierto por usuario. Se crea al registrarse.
 | id | BIGINT | PK |
 | carrito_id | BIGINT | FK carritos, NOT NULL, `@ManyToOne` |
 | servicio_id | BIGINT | FK servicios, NOT NULL, `@ManyToOne` |
-| cantidad | INT | NOT NULL, mayor a 0 |
+| cantidad | INT | NOT NULL, mayor a 0. Son visitas |
+| frecuencia | VARCHAR(20) | NOT NULL, UNICA / SEMANAL / QUINCENAL / MENSUAL |
 
 UNIQUE (carrito_id, servicio_id): agregar dos veces el mismo servicio suma
 cantidad, no crea una fila nueva.
@@ -153,7 +173,8 @@ cantidad, no crea una fila nueva.
 | orden_id | BIGINT | FK ordenes, NOT NULL, `@ManyToOne` |
 | servicio_id | BIGINT | FK servicios, NOT NULL |
 | tituloServicio | VARCHAR(120) | copia congelada |
-| cantidad | INT | NOT NULL |
+| cantidad | INT | NOT NULL. Son visitas |
+| frecuencia | VARCHAR(20) | NOT NULL, copia congelada |
 | precioUnitario | DECIMAL(12,2) | copia congelada |
 | subtotal | DECIMAL(12,2) | cantidad por precioUnitario |
 
@@ -175,6 +196,8 @@ cantidad, no crea una fila nueva.
    cupos, agregarle fotos o darlo de baja. La consigna lo pide de forma
    implícita: dice que "el usuario **que crea** dicho producto podrá manejar el
    stock del mismo". Responde 403 FORBIDDEN.
+8. Una frecuencia recurrente necesita al menos 2 visitas. "1 visita SEMANAL" no
+   quiere decir nada: no hay nada que repetir. Respuesta: 400.
 
 ---
 
@@ -210,11 +233,14 @@ Base: `/api`
 | Método | Ruta | Descripción | Éxito |
 |---|---|---|---|
 | GET | `/carrito` | contenido y total calculado | 200 |
-| POST | `/carrito/items` | agrega servicio con cantidad | 201 / 409 sin cupo |
-| PUT | `/carrito/items/{id}` | cambia cantidad | 200 |
+| POST | `/carrito/items` | agrega servicio con visitas y frecuencia | 201 / 409 sin cupo |
+| PUT | `/carrito/items/{id}` | cambia visitas y frecuencia | 200 |
 | DELETE | `/carrito/items/{id}` | elimina un ítem | 204 |
 | DELETE | `/carrito` | vacía el carrito | 204 |
 | POST | `/carrito/checkout` | confirma, descuenta cupos, genera orden | 201 |
+
+`frecuencia` es opcional en los dos primeros: al agregar se asume `UNICA`, y al
+modificar significa "dejala como estaba".
 
 ### Órdenes
 | Método | Ruta | Descripción | Éxito |

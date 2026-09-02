@@ -44,7 +44,7 @@ public class CarritoController {
 
     /** 409 si el servicio no tiene cupos, como pide la consigna. */
     @Operation(summary = "Agregar al carrito",
-            description = "Devuelve 409 si el servicio no tiene cupos, 400 si se pide mas cantidad que la disponible o si el usuario intenta contratar su propio servicio. Si el servicio ya estaba, suma cantidad en vez de duplicar la linea.")
+            description = "cantidad son las visitas a contratar y frecuencia (UNICA, SEMANAL, QUINCENAL, MENSUAL) dice cada cuanto se repiten; si no se envia, se asume UNICA. Cada visita consume un cupo. Devuelve 409 si el servicio no tiene cupos, 400 si se pide mas cantidad que la disponible, si el usuario intenta contratar su propio servicio o si se pide una frecuencia recurrente con una sola visita. Si el servicio ya estaba, suma cantidad en vez de duplicar la linea.")
     @PostMapping("/items")
     public ResponseEntity<CarritoResponse> agregarItem(@RequestParam Long usuarioId,
                                                        @Valid @RequestBody AgregarItemRequest request) {
@@ -52,7 +52,8 @@ public class CarritoController {
                 .body(carritoService.agregarItem(usuarioId, request));
     }
 
-    @Operation(summary = "Cambiar la cantidad de un item")
+    @Operation(summary = "Cambiar la cantidad de un item",
+            description = "frecuencia es opcional: si no se envia, la linea conserva la recurrencia que ya tenia.")
     @PutMapping("/items/{itemId}")
     public ResponseEntity<CarritoResponse> actualizarCantidad(
             @RequestParam Long usuarioId,

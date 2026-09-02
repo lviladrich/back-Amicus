@@ -73,13 +73,22 @@ config/       configuración y carga de datos inicial
 | POST | `/api/servicios/{id}/imagenes?usuarioId=` | agrega una foto |
 | DELETE | `/api/servicios/{id}/imagenes/{imagenId}?usuarioId=` | quita una foto |
 | GET | `/api/carrito?usuarioId=` | contenido con el total calculado |
-| POST | `/api/carrito/items?usuarioId=` | agrega un servicio. 409 si no tiene cupos |
-| PUT | `/api/carrito/items/{id}?usuarioId=` | cambia la cantidad |
+| POST | `/api/carrito/items?usuarioId=` | agrega un servicio con sus visitas y frecuencia. 409 si no tiene cupos |
+| PUT | `/api/carrito/items/{id}?usuarioId=` | cambia la cantidad de visitas y la frecuencia |
 | DELETE | `/api/carrito/items/{id}?usuarioId=` | elimina un ítem |
 | DELETE | `/api/carrito?usuarioId=` | vacía el carrito |
 | POST | `/api/carrito/checkout?usuarioId=` | confirma, descuenta cupos y genera la orden |
 | GET | `/api/ordenes?usuarioId=` | historial de compras |
 | GET | `/api/ordenes/{id}` | detalle de una orden |
+
+## Contratación recurrente
+
+Un servicio no se compra por unidad, se contrata por visita. Cada línea del
+carrito lleva la cantidad de visitas y una frecuencia: `UNICA` (por defecto),
+`SEMANAL`, `QUINCENAL` o `MENSUAL`. Ocho visitas semanales son dos meses de
+limpieza y consumen ocho cupos, porque un cupo es una visita que el profesional
+se compromete a tomar. La frecuencia no cambia el precio, solo cuándo se presta,
+y la orden la congela junto al título y al precio.
 
 
 

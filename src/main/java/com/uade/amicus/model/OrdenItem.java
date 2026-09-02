@@ -53,8 +53,20 @@ public class OrdenItem {
     @Column(name = "titulo_servicio", nullable = false, length = 120)
     private String tituloServicio;
 
+    /** Cantidad de visitas contratadas. */
     @Column(nullable = false)
     private Integer cantidad;
+
+    /**
+     * Frecuencia con la que se contrataron esas visitas.
+     *
+     * Tambien se congela: forma parte de lo que se contrato. Si el cliente pidio
+     * ocho visitas semanales, el comprobante tiene que decir eso, aunque despues
+     * vuelva a contratar el mismo servicio una sola vez.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Frecuencia frecuencia;
 
     /** Copia congelada del precio al momento de la compra. */
     @Column(name = "precio_unitario", nullable = false, precision = 12, scale = 2)
@@ -73,6 +85,7 @@ public class OrdenItem {
                 .servicio(item.getServicio())
                 .tituloServicio(item.getServicio().getTitulo())
                 .cantidad(item.getCantidad())
+                .frecuencia(item.getFrecuencia())
                 .precioUnitario(item.getServicio().getPrecio())
                 .subtotal(item.calcularSubtotal())
                 .build();
