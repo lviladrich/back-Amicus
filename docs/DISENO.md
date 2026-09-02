@@ -60,7 +60,24 @@ Una línea tiene una sola frecuencia, porque la restricción única sobre
 `(carrito_id, servicio_id)` impide que el mismo servicio aparezca dos veces. Si
 se agrega de nuevo con otra frecuencia, la nueva redefine la línea.
 
-### 1.6 Base de datos
+### 1.6 Solo reseña quien contrató
+
+En un marketplace de oficios la reputación es el producto: nadie deja entrar a
+un desconocido a su casa sin ver antes qué opinó el resto. La regla que le da
+valor al promedio es que solo pueda escribir quien tenga una orden `CONFIRMADA`
+que incluya el servicio. Una orden cancelada no habilita, porque el trabajo no
+se prestó.
+
+El promedio lo calcula la base con `avg()`, no Java: traer todas las reseñas
+para devolver un número sería mover cientos de filas por la red. Devuelve `null`
+cuando no hay ninguna, y no se reemplaza por `0`: un servicio nuevo no vale cero
+estrellas, no tiene calificación, y son dos cosas distintas.
+
+La calificación aparece en el detalle del servicio y no en el resumen del
+catálogo a propósito: es una consulta agregada por servicio, y ponerla en el
+listado significaría una consulta extra por cada fila devuelta.
+
+### 1.7 Base de datos
 
 MySQL 8.4 como base principal, levantado con `docker compose up -d` para que los
 cinco integrantes tengan la misma versión y las mismas credenciales sin instalar
@@ -178,6 +195,19 @@ cantidad, no crea una fila nueva.
 | precioUnitario | DECIMAL(12,2) | copia congelada |
 | subtotal | DECIMAL(12,2) | cantidad por precioUnitario |
 
+### resenas
+| Campo | Tipo | Restricciones |
+|---|---|---|
+| id | BIGINT | PK |
+| servicio_id | BIGINT | FK servicios, NOT NULL, `@ManyToOne` |
+| autor_id | BIGINT | FK usuarios, NOT NULL, `@ManyToOne` |
+| puntaje | INT | NOT NULL, de 1 a 5 |
+| comentario | VARCHAR(1000) | opcional: se puede calificar sin escribir |
+| fecha | TIMESTAMP | NOT NULL |
+
+UNIQUE (servicio_id, autor_id): una sola reseña por persona y por servicio, para
+que nadie pueda repetir su opinión y correr el promedio.
+
 ---
 
 ## 3. Reglas de negocio
@@ -198,6 +228,10 @@ cantidad, no crea una fila nueva.
    stock del mismo". Responde 403 FORBIDDEN.
 8. Una frecuencia recurrente necesita al menos 2 visitas. "1 visita SEMANAL" no
    quiere decir nada: no hay nada que repetir. Respuesta: 400.
+9. Solo puede reseñar un servicio quien tenga una orden `CONFIRMADA` que lo
+   incluya (403), nadie puede reseñar su propia publicación (400), y se admite
+   una sola reseña por persona y servicio (409). Solo el autor puede borrar la
+   suya (403).
 
 ---
 
@@ -247,6 +281,16 @@ modificar significa "dejala como estaba".
 |---|---|---|---|
 | GET | `/ordenes` | historial del usuario | 200 |
 | GET | `/ordenes/{id}` | detalle de una orden | 200 / 404 |
+
+### Reseñas
+| Método | Ruta | Descripción | Éxito |
+|---|---|---|---|
+| GET | `/servicios/{id}/resenas` | reseñas del servicio, la más nueva primero | 200 / 404 |
+| POST | `/servicios/{id}/resenas` | califica de 1 a 5 con comentario opcional | 201 / 400 / 403 / 409 |
+| DELETE | `/resenas/{id}` | el autor borra la suya | 204 / 403 / 404 |
+
+El promedio y la cantidad de reseñas se devuelven en el detalle del servicio,
+como `promedioPuntaje` y `cantidadResenas`.
 
 ---
 

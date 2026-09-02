@@ -80,6 +80,9 @@ config/       configuración y carga de datos inicial
 | POST | `/api/carrito/checkout?usuarioId=` | confirma, descuenta cupos y genera la orden |
 | GET | `/api/ordenes?usuarioId=` | historial de compras |
 | GET | `/api/ordenes/{id}` | detalle de una orden |
+| GET | `/api/servicios/{id}/resenas` | reseñas del servicio, de la más nueva a la más vieja |
+| POST | `/api/servicios/{id}/resenas?usuarioId=` | reseña. 403 si no lo contrataste, 409 si ya lo reseñaste |
+| DELETE | `/api/resenas/{id}?usuarioId=` | borra tu reseña. 403 si no sos el autor |
 
 ## Contratación recurrente
 
@@ -89,6 +92,13 @@ carrito lleva la cantidad de visitas y una frecuencia: `UNICA` (por defecto),
 limpieza y consumen ocho cupos, porque un cupo es una visita que el profesional
 se compromete a tomar. La frecuencia no cambia el precio, solo cuándo se presta,
 y la orden la congela junto al título y al precio.
+
+## Reseñas
+
+Solo puede reseñar quien tenga una orden `CONFIRMADA` que incluya el servicio, y
+una sola vez. Nadie reseña su propia publicación. El detalle del servicio expone
+`promedioPuntaje` y `cantidadResenas`; el promedio es `null` y no `0` cuando
+todavía no hay reseñas, porque un servicio nuevo no vale cero estrellas.
 
 
 

@@ -229,7 +229,47 @@ probar "Se descontaron 2 de los 7 cupos"        200 GET "/servicios/$SIN_CUPOS"
 echo "     -> cupos: $(campo cuposDisponibles)"
 
 # ------------------------------------------------------------
-titulo "12. PEDIDOS MAL FORMADOS"
+titulo "12. RESENIAS"
+probar "Registrar a un vecino que no contrato"  201 POST "/auth/registro" \
+  "{\"username\":\"vec$SUFIJO\",\"email\":\"vec$SUFIJO@mail.com\",\"password\":\"secreto123\",\"nombre\":\"Vecino\",\"apellido\":\"Curioso\"}"
+VEC=$(campo id)
+
+probar "Rechazar resenia del propio dueno"      400 POST "/servicios/$SERV/resenas?usuarioId=$PRO" \
+  '{"puntaje":5,"comentario":"Me califico a mi mismo"}'
+echo "     -> $(campo mensaje)"
+
+probar "Rechazar a quien no lo contrato"        403 POST "/servicios/$SERV/resenas?usuarioId=$VEC" \
+  '{"puntaje":1,"comentario":"Nunca lo use pero opino"}'
+echo "     -> $(campo mensaje)"
+
+probar "Rechazar puntaje fuera de 1 a 5"        400 POST "/servicios/$SERV/resenas?usuarioId=$CLI" \
+  '{"puntaje":9,"comentario":"Once de diez"}'
+
+probar "La clienta que SI contrato resenia"     201 POST "/servicios/$SERV/resenas?usuarioId=$CLI" \
+  '{"puntaje":4,"comentario":"Llego puntual y dejo todo limpio."}'
+RESENIA=$(campo id)
+echo "     -> puntaje $(campo puntaje) de $(campo autor)"
+
+probar "Rechazar la segunda resenia del mismo"  409 POST "/servicios/$SERV/resenas?usuarioId=$CLI" \
+  '{"puntaje":1,"comentario":"Me arrepenti"}'
+echo "     -> $(campo mensaje)"
+
+probar "Listar las resenias del servicio"       200 GET "/servicios/$SERV/resenas"
+probar "El detalle muestra la calificacion"     200 GET "/servicios/$SERV"
+echo "     -> promedio: $(campo promedioPuntaje) sobre $(campo cantidadResenas) resenia(s)"
+
+probar "Rechazar que otro borre la resenia"     403 DELETE "/resenas/$RESENIA?usuarioId=$VEC"
+probar "El autor SI puede borrar la suya"       204 DELETE "/resenas/$RESENIA?usuarioId=$CLI"
+probar "Sin resenias el promedio es nulo"       200 GET "/servicios/$SERV"
+python3 -c "
+import json
+p = json.load(open('/tmp/amicus_resp.json'))['promedioPuntaje']
+print('     -> promedio: %s' % ('null' if p is None else p))
+print('     -> null y no 0: un servicio sin resenias no vale cero estrellas')
+"
+
+# ------------------------------------------------------------
+titulo "13. PEDIDOS MAL FORMADOS"
 probar "Metodo no permitido da 405"             405 DELETE "/categorias/1"
 probar "JSON malformado da 400"                 400 POST "/auth/login" '{esto no es json}'
 probar "Falta parametro obligatorio da 400"     400 GET "/carrito"

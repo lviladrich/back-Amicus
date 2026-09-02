@@ -10,6 +10,7 @@ import com.uade.amicus.exception.RecursoNoEncontradoException;
 import com.uade.amicus.exception.ReglaDeNegocioException;
 import com.uade.amicus.model.Servicio;
 import com.uade.amicus.model.ServicioImagen;
+import com.uade.amicus.repository.ResenaRepository;
 import com.uade.amicus.repository.ServicioImagenRepository;
 import com.uade.amicus.repository.ServicioRepository;
 import org.springframework.stereotype.Service;
@@ -25,20 +26,42 @@ public class ServicioService {
 
     private final ServicioRepository servicioRepository;
     private final ServicioImagenRepository imagenRepository;
+    private final ResenaRepository resenaRepository;
     private final CategoriaService categoriaService;
     private final UsuarioService usuarioService;
     private final ZonaService zonaService;
 
+    /**
+     * Se inyecta ResenaRepository y no ResenaService a proposito: aca solo hace
+     * falta leer el promedio, y depender del service crearia un ciclo, porque
+     * ResenaService ya depende de este.
+     */
     public ServicioService(ServicioRepository servicioRepository,
                            ServicioImagenRepository imagenRepository,
+                           ResenaRepository resenaRepository,
                            CategoriaService categoriaService,
                            UsuarioService usuarioService,
                            ZonaService zonaService) {
         this.servicioRepository = servicioRepository;
         this.imagenRepository = imagenRepository;
+        this.resenaRepository = resenaRepository;
         this.categoriaService = categoriaService;
         this.usuarioService = usuarioService;
         this.zonaService = zonaService;
+    }
+
+    /**
+     * Arma el detalle con su calificacion.
+     *
+     * Existe para que los seis lugares que devuelven un detalle lo hagan igual:
+     * si uno llamara al DTO directo, ese endpoint devolveria el servicio sin
+     * promedio y nadie se enteraria hasta verlo en la pantalla.
+     */
+    private ServicioDetalleResponse detalleDe(Servicio servicio) {
+        return ServicioDetalleResponse.desde(
+                servicio,
+                resenaRepository.promedioDe(servicio.getId()),
+                resenaRepository.countByServicioId(servicio.getId()));
     }
 
     /** Catalogo completo, ordenado alfabeticamente como pide la consigna. */
@@ -63,7 +86,7 @@ public class ServicioService {
     public ServicioDetalleResponse buscarDetalle(Long id) {
         Servicio servicio = servicioRepository.buscarDetalle(id)
                 .orElseThrow(() -> RecursoNoEncontradoException.de("Servicio", id));
-        return ServicioDetalleResponse.desde(servicio);
+        return detalleDe(servicio);
     }
 
     @Transactional(readOnly = true)
@@ -101,7 +124,7 @@ public class ServicioService {
             }
         }
 
-        return ServicioDetalleResponse.desde(servicioRepository.save(servicio));
+        return detalleDe(servicioRepository.save(servicio));
     }
 
     /**
@@ -123,7 +146,7 @@ public class ServicioService {
         servicio.setCategoria(categoriaService.obtenerEntidad(request.categoriaId()));
         servicio.setZonas(zonaService.obtenerPorIds(request.zonaIds()));
 
-        return ServicioDetalleResponse.desde(servicio);
+        return detalleDe(servicio);
     }
 
     /**
@@ -139,7 +162,7 @@ public class ServicioService {
         Servicio servicio = obtenerEntidad(id);
         validarPropietario(servicio, usuarioId, "manejar los cupos de");
         servicio.setCuposDisponibles(request.cuposDisponibles());
-        return ServicioDetalleResponse.desde(servicio);
+        return detalleDe(servicio);
     }
 
     /**
@@ -169,7 +192,7 @@ public class ServicioService {
                         ? request.ordenVisualizacion()
                         : servicio.getImagenes().size())
                 .build());
-        return ServicioDetalleResponse.desde(servicio);
+        return detalleDe(servicio);
     }
 
     @Transactional
