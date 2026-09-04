@@ -1,6 +1,7 @@
 package com.uade.amicus.service;
 
 import com.uade.amicus.dto.response.OrdenResponse;
+import com.uade.amicus.dto.response.PaginaResponse;
 import com.uade.amicus.exception.ConflictoException;
 import com.uade.amicus.exception.OperacionNoPermitidaException;
 import com.uade.amicus.exception.RecursoNoEncontradoException;
@@ -12,6 +13,7 @@ import com.uade.amicus.model.Orden;
 import com.uade.amicus.model.OrdenItem;
 import com.uade.amicus.model.Servicio;
 import com.uade.amicus.repository.OrdenRepository;
+import com.uade.amicus.util.Paginacion;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -157,9 +159,9 @@ public class CheckoutService {
     }
 
     @Transactional(readOnly = true)
-    public List<OrdenResponse> listarPorUsuario(Long usuarioId) {
-        return ordenRepository.findByUsuarioIdOrderByFechaDesc(usuarioId).stream()
-                .map(OrdenResponse::desde)
-                .toList();
+    public PaginaResponse<OrdenResponse> listarPorUsuario(Long usuarioId, int pagina, int tamanio) {
+        return PaginaResponse.desde(
+                ordenRepository.findByUsuarioIdOrderByFechaDesc(usuarioId, Paginacion.de(pagina, tamanio))
+                        .map(OrdenResponse::desde));
     }
 }

@@ -1,13 +1,12 @@
 package com.uade.amicus.controller;
 
 import com.uade.amicus.dto.response.OrdenResponse;
+import com.uade.amicus.dto.response.PaginaResponse;
 import com.uade.amicus.service.CheckoutService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /** Historial de compras. */
 @Tag(name = "6. Ordenes", description = "Historial de compras")
@@ -22,10 +21,13 @@ public class OrdenController {
     }
 
     @Operation(summary = "Historial de compras",
-            description = "Ordenes del usuario, de la mas reciente a la mas antigua.")
+            description = "Ordenes del usuario, de la mas reciente a la mas antigua, paginado.")
     @GetMapping
-    public ResponseEntity<List<OrdenResponse>> listarPorUsuario(@RequestParam Long usuarioId) {
-        return ResponseEntity.ok(checkoutService.listarPorUsuario(usuarioId));
+    public ResponseEntity<PaginaResponse<OrdenResponse>> listarPorUsuario(
+            @RequestParam Long usuarioId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(checkoutService.listarPorUsuario(usuarioId, page, size));
     }
 
     @Operation(summary = "Detalle de una orden",
