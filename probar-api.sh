@@ -105,6 +105,8 @@ probar "Filtrar por categoria"                200 GET "/servicios?categoriaId=1"
 probar "Filtrar por zona"                     200 GET "/servicios?zonaId=4"
 probar "Buscar por texto"                     200 GET "/servicios?q=ventilador"
 probar "Solo con cupos disponibles"           200 GET "/servicios?conCupo=true"
+probar "Catalogo paginado (page=0, size=1)"   200 GET "/servicios?page=0&size=1"
+echo "     -> pagina $(campo pagina) de $(campo totalPaginas), $(campo totalElementos) servicio(s) en total"
 probar "Detalle del servicio"                 200 GET "/servicios/$SERV"
 echo "     -> categoria: $(campo categoria | head -c 60)"
 probar "Servicio inexistente da 404"          404 GET "/servicios/999999"
@@ -192,6 +194,8 @@ probar "Rechazar la segunda baja"             400 DELETE "/servicios/$SERV?usuar
 probar "La orden sigue existiendo"            200 GET "/ordenes/$ORDEN"
 echo "     -> total de la orden: \$$(campo total)"
 probar "Historial de compras"                 200 GET "/ordenes?usuarioId=$CLI"
+probar "Historial paginado (page=0, size=1)"  200 GET "/ordenes?usuarioId=$CLI&page=0&size=1"
+echo "     -> pagina $(campo pagina) de $(campo totalPaginas), $(campo totalElementos) orden(es) en total"
 
 # ------------------------------------------------------------
 titulo "11. RECURRENCIA"
@@ -255,6 +259,8 @@ probar "Rechazar la segunda resenia del mismo"  409 POST "/servicios/$SERV/resen
 echo "     -> $(campo mensaje)"
 
 probar "Listar las resenias del servicio"       200 GET "/servicios/$SERV/resenas"
+probar "Resenias paginadas (page=0, size=1)"    200 GET "/servicios/$SERV/resenas?page=0&size=1"
+echo "     -> pagina $(campo pagina) de $(campo totalPaginas), $(campo totalElementos) resenia(s) en total"
 probar "El detalle muestra la calificacion"     200 GET "/servicios/$SERV"
 echo "     -> promedio: $(campo promedioPuntaje) sobre $(campo cantidadResenas) resenia(s)"
 
