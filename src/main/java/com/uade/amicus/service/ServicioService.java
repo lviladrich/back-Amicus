@@ -3,6 +3,7 @@ package com.uade.amicus.service;
 import com.uade.amicus.dto.request.ActualizarCuposRequest;
 import com.uade.amicus.dto.request.ImagenRequest;
 import com.uade.amicus.dto.request.ServicioRequest;
+import com.uade.amicus.dto.response.PaginaResponse;
 import com.uade.amicus.dto.response.ServicioDetalleResponse;
 import com.uade.amicus.dto.response.ServicioResumenResponse;
 import com.uade.amicus.exception.OperacionNoPermitidaException;
@@ -13,6 +14,7 @@ import com.uade.amicus.model.ServicioImagen;
 import com.uade.amicus.repository.ResenaRepository;
 import com.uade.amicus.repository.ServicioImagenRepository;
 import com.uade.amicus.repository.ServicioRepository;
+import com.uade.amicus.util.Paginacion;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,20 +68,21 @@ public class ServicioService {
 
     /** Catalogo completo, ordenado alfabeticamente como pide la consigna. */
     @Transactional(readOnly = true)
-    public List<ServicioResumenResponse> listar() {
-        return servicioRepository.findByActivoTrueOrderByTituloAsc().stream()
-                .map(ServicioResumenResponse::desde)
-                .toList();
+    public PaginaResponse<ServicioResumenResponse> listar(int pagina, int tamanio) {
+        return PaginaResponse.desde(
+                servicioRepository.findByActivoTrueOrderByTituloAsc(Paginacion.de(pagina, tamanio))
+                        .map(ServicioResumenResponse::desde));
     }
 
     /** Catalogo filtrado. Los filtros nulos simplemente no filtran. */
     @Transactional(readOnly = true)
-    public List<ServicioResumenResponse> buscar(Long categoriaId, Long zonaId,
-                                                String texto, boolean conCupo) {
+    public PaginaResponse<ServicioResumenResponse> buscar(Long categoriaId, Long zonaId,
+                                                          String texto, boolean conCupo,
+                                                          int pagina, int tamanio) {
         String textoLimpio = (texto == null || texto.isBlank()) ? null : texto.trim();
-        return servicioRepository.buscar(categoriaId, zonaId, textoLimpio, conCupo).stream()
-                .map(ServicioResumenResponse::desde)
-                .toList();
+        return PaginaResponse.desde(
+                servicioRepository.buscar(categoriaId, zonaId, textoLimpio, conCupo, Paginacion.de(pagina, tamanio))
+                        .map(ServicioResumenResponse::desde));
     }
 
     @Transactional(readOnly = true)

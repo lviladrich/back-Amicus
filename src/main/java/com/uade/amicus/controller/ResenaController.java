@@ -1,6 +1,7 @@
 package com.uade.amicus.controller;
 
 import com.uade.amicus.dto.request.ResenaRequest;
+import com.uade.amicus.dto.response.PaginaResponse;
 import com.uade.amicus.dto.response.ResenaResponse;
 import com.uade.amicus.service.ResenaService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -9,8 +10,6 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * Calificaciones de los servicios.
@@ -31,10 +30,13 @@ public class ResenaController {
     }
 
     @Operation(summary = "Reseñas de un servicio",
-            description = "Listado de las mas nuevas a las mas viejas. El promedio y la cantidad vienen en el detalle del servicio.")
+            description = "Listado paginado de las mas nuevas a las mas viejas. El promedio y la cantidad vienen en el detalle del servicio.")
     @GetMapping("/servicios/{servicioId}/resenas")
-    public ResponseEntity<List<ResenaResponse>> listar(@PathVariable Long servicioId) {
-        return ResponseEntity.ok(resenaService.listarPorServicio(servicioId));
+    public ResponseEntity<PaginaResponse<ResenaResponse>> listar(
+            @PathVariable Long servicioId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(resenaService.listarPorServicio(servicioId, page, size));
     }
 
     @Operation(summary = "Reseñar un servicio",

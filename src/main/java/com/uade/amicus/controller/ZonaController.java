@@ -35,4 +35,27 @@ public class ZonaController {
     public ResponseEntity<ZonaResponse> crear(@Valid @RequestBody ZonaRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(zonaService.crear(request));
     }
+
+    @Operation(summary = "Buscar por id",
+            description = "Devuelve el recurso o 404 si no existe.")
+    @GetMapping("/{id}")
+    public ResponseEntity<ZonaResponse> buscarPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(zonaService.buscarPorId(id));
+    }
+
+    @Operation(summary = "Modificar",
+            description = "PUT reemplaza el recurso completo: hay que enviar todos los campos.")
+    @PutMapping("/{id}")
+    public ResponseEntity<ZonaResponse> actualizar(@PathVariable Long id,
+                                                    @Valid @RequestBody ZonaRequest request) {
+        return ResponseEntity.ok(zonaService.actualizar(id, request));
+    }
+
+    @Operation(summary = "Eliminar una zona",
+            description = "Devuelve 409 si hay servicios asociados a la zona.")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        zonaService.eliminar(id);
+        return ResponseEntity.noContent().build();
+    }
 }

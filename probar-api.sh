@@ -84,6 +84,16 @@ probar "Login correcto"                       200 POST "/auth/login" \
 probar "Rechazar password incorrecta"         401 POST "/auth/login" \
   "{\"email\":\"cli$SUFIJO@mail.com\",\"password\":\"equivocada\"}"
 
+probar "Editar el perfil propio"              200 PUT "/auth/usuarios/$CLI?usuarioId=$CLI" \
+  "{\"nombre\":\"Lucia Editada\",\"apellido\":\"Viladrich Editada\",\"email\":\"cli$SUFIJO.editado@mail.com\"}"
+echo "     -> username no cambio: $(campo username)"
+probar "Rechazar que otro edite el perfil"    403 PUT "/auth/usuarios/$PRO?usuarioId=$CLI" \
+  "{\"nombre\":\"Hackeado\",\"apellido\":\"Hackeado\",\"email\":\"hack$SUFIJO@mail.com\"}"
+probar "Rechazar mail duplicado en la edicion" 400 PUT "/auth/usuarios/$PRO?usuarioId=$PRO" \
+  "{\"nombre\":\"Martin\",\"apellido\":\"Gomez\",\"email\":\"cli$SUFIJO.editado@mail.com\"}"
+probar "Rechazar datos invalidos en la edicion" 400 PUT "/auth/usuarios/$CLI?usuarioId=$CLI" \
+  '{"nombre":"","apellido":"Viladrich","email":"no-es-mail"}'
+
 # ------------------------------------------------------------
 titulo "3. PUBLICAR SERVICIOS"
 probar "Publicar servicio con 3 cupos"        201 POST "/servicios" \
@@ -105,6 +115,8 @@ probar "Filtrar por categoria"                200 GET "/servicios?categoriaId=1"
 probar "Filtrar por zona"                     200 GET "/servicios?zonaId=4"
 probar "Buscar por texto"                     200 GET "/servicios?q=ventilador"
 probar "Solo con cupos disponibles"           200 GET "/servicios?conCupo=true"
+probar "Catalogo paginado (page=0, size=1)"   200 GET "/servicios?page=0&size=1"
+echo "     -> pagina $(campo pagina) de $(campo totalPaginas), $(campo totalElementos) servicio(s) en total"
 probar "Detalle del servicio"                 200 GET "/servicios/$SERV"
 echo "     -> categoria: $(campo categoria | head -c 60)"
 probar "Servicio inexistente da 404"          404 GET "/servicios/999999"
@@ -192,6 +204,8 @@ probar "Rechazar la segunda baja"             400 DELETE "/servicios/$SERV?usuar
 probar "La orden sigue existiendo"            200 GET "/ordenes/$ORDEN"
 echo "     -> total de la orden: \$$(campo total)"
 probar "Historial de compras"                 200 GET "/ordenes?usuarioId=$CLI"
+probar "Historial paginado (page=0, size=1)"  200 GET "/ordenes?usuarioId=$CLI&page=0&size=1"
+echo "     -> pagina $(campo pagina) de $(campo totalPaginas), $(campo totalElementos) orden(es) en total"
 
 # ------------------------------------------------------------
 titulo "11. RECURRENCIA"
@@ -255,6 +269,8 @@ probar "Rechazar la segunda resenia del mismo"  409 POST "/servicios/$SERV/resen
 echo "     -> $(campo mensaje)"
 
 probar "Listar las resenias del servicio"       200 GET "/servicios/$SERV/resenas"
+probar "Resenias paginadas (page=0, size=1)"    200 GET "/servicios/$SERV/resenas?page=0&size=1"
+echo "     -> pagina $(campo pagina) de $(campo totalPaginas), $(campo totalElementos) resenia(s) en total"
 probar "El detalle muestra la calificacion"     200 GET "/servicios/$SERV"
 echo "     -> promedio: $(campo promedioPuntaje) sobre $(campo cantidadResenas) resenia(s)"
 
@@ -285,11 +301,36 @@ echo "     -> un comprobante cancelado sigue siendo un comprobante"
 
 # ------------------------------------------------------------
 titulo "14. PEDIDOS MAL FORMADOS"
-probar "Metodo no permitido da 405"             405 DELETE "/categorias/1"
+probar "Metodo no permitido da 405"             405 DELETE "/auth/usuarios/1"
 probar "JSON malformado da 400"                 400 POST "/auth/login" '{esto no es json}'
 probar "Falta parametro obligatorio da 400"     400 GET "/carrito"
 probar "Tipo invalido en la ruta da 400"        400 GET "/servicios/abc"
 probar "Ruta inexistente da 404"                404 GET "/no-existe"
+
+# ------------------------------------------------------------
+titulo "15. ABM COMPLETO DE CATEGORIAS Y ZONAS"
+probar "Crear categoria de prueba"              201 POST "/categorias" \
+  "{\"nombre\":\"CategoriaPrueba$SUFIJO\",\"descripcion\":\"Solo para probar el ABM\"}"
+CAT_PRUEBA=$(campo id)
+probar "Buscar la categoria creada"             200 GET "/categorias/$CAT_PRUEBA"
+probar "Categoria inexistente da 404"           404 GET "/categorias/999999"
+probar "No se puede borrar una categoria en uso" 409 DELETE "/categorias/1"
+echo "     -> $(campo mensaje)"
+probar "Borrar la categoria de prueba"          204 DELETE "/categorias/$CAT_PRUEBA"
+probar "La categoria borrada ya no existe"      404 GET "/categorias/$CAT_PRUEBA"
+
+probar "Crear zona de prueba"                   201 POST "/zonas" \
+  "{\"nombre\":\"ZonaPrueba$SUFIJO\"}"
+ZONA_PRUEBA=$(campo id)
+probar "Buscar la zona creada"                  200 GET "/zonas/$ZONA_PRUEBA"
+probar "Zona inexistente da 404"                404 GET "/zonas/999999"
+probar "Modificar el nombre de la zona"         200 PUT "/zonas/$ZONA_PRUEBA" \
+  "{\"nombre\":\"ZonaPruebaModificada$SUFIJO\"}"
+echo "     -> nombre: $(campo nombre)"
+probar "No se puede borrar una zona en uso"     409 DELETE "/zonas/4"
+echo "     -> $(campo mensaje)"
+probar "Borrar la zona de prueba"               204 DELETE "/zonas/$ZONA_PRUEBA"
+probar "La zona borrada ya no existe"           404 GET "/zonas/$ZONA_PRUEBA"
 
 # ------------------------------------------------------------
 echo

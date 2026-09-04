@@ -1,6 +1,7 @@
 package com.uade.amicus.service;
 
 import com.uade.amicus.dto.request.ResenaRequest;
+import com.uade.amicus.dto.response.PaginaResponse;
 import com.uade.amicus.dto.response.ResenaResponse;
 import com.uade.amicus.exception.ConflictoException;
 import com.uade.amicus.exception.OperacionNoPermitidaException;
@@ -12,10 +13,9 @@ import com.uade.amicus.model.Servicio;
 import com.uade.amicus.model.Usuario;
 import com.uade.amicus.repository.OrdenRepository;
 import com.uade.amicus.repository.ResenaRepository;
+import com.uade.amicus.util.Paginacion;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 /**
  * Calificaciones de los servicios.
@@ -44,14 +44,14 @@ public class ResenaService {
     }
 
     @Transactional(readOnly = true)
-    public List<ResenaResponse> listarPorServicio(Long servicioId) {
+    public PaginaResponse<ResenaResponse> listarPorServicio(Long servicioId, int pagina, int tamanio) {
         // Que el servicio exista, para no devolver una lista vacia cuando en
         // realidad el id es inventado.
         servicioService.obtenerEntidad(servicioId);
 
-        return resenaRepository.findByServicioIdOrderByFechaDesc(servicioId).stream()
-                .map(ResenaResponse::desde)
-                .toList();
+        return PaginaResponse.desde(
+                resenaRepository.findByServicioIdOrderByFechaDesc(servicioId, Paginacion.de(pagina, tamanio))
+                        .map(ResenaResponse::desde));
     }
 
     /**

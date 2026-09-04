@@ -53,4 +53,12 @@ public class CategoriaController {
                                                         @Valid @RequestBody CategoriaRequest request) {
         return ResponseEntity.ok(categoriaService.actualizar(id, request));
     }
+
+    @Operation(summary = "Eliminar una categoria",
+            description = "Devuelve 409 si hay servicios asociados a la categoria.")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        categoriaService.eliminar(id);
+        return ResponseEntity.noContent().build();
+    }
 }
