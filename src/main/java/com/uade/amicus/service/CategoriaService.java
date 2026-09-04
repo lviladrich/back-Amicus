@@ -2,10 +2,12 @@ package com.uade.amicus.service;
 
 import com.uade.amicus.dto.request.CategoriaRequest;
 import com.uade.amicus.dto.response.CategoriaResponse;
+import com.uade.amicus.exception.ConflictoException;
 import com.uade.amicus.exception.RecursoNoEncontradoException;
 import com.uade.amicus.exception.ReglaDeNegocioException;
 import com.uade.amicus.model.Categoria;
 import com.uade.amicus.repository.CategoriaRepository;
+import com.uade.amicus.repository.ServicioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,9 +17,11 @@ import java.util.List;
 public class CategoriaService {
 
     private final CategoriaRepository categoriaRepository;
+    private final ServicioRepository servicioRepository;
 
-    public CategoriaService(CategoriaRepository categoriaRepository) {
+    public CategoriaService(CategoriaRepository categoriaRepository, ServicioRepository servicioRepository) {
         this.categoriaRepository = categoriaRepository;
+        this.servicioRepository = servicioRepository;
     }
 
     /**
@@ -62,5 +66,16 @@ public class CategoriaService {
     public Categoria obtenerEntidad(Long id) {
         return categoriaRepository.findById(id)
                 .orElseThrow(() -> RecursoNoEncontradoException.de("Categoria", id));
+    }
+
+    @Transactional
+    public void eliminar(Long id) {
+        Categoria categoria = obtenerEntidad(id);
+        if (servicioRepository.existsByCategoriaId(id)) {
+            throw new ConflictoException(
+                    "No se puede eliminar la categoria \"" + categoria.getNombre()
+                            + "\" porque tiene servicios asociados");
+        }
+        categoriaRepository.delete(categoria);
     }
 }
