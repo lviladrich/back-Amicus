@@ -1,18 +1,18 @@
 package com.uade.amicus.repository;
 
 import com.uade.amicus.model.Resena;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-
 @Repository
 public interface ResenaRepository extends JpaRepository<Resena, Long> {
 
     /** Las mas nuevas primero, que es lo que espera ver cualquiera. */
-    List<Resena> findByServicioIdOrderByFechaDesc(Long servicioId);
+    Page<Resena> findByServicioIdOrderByFechaDesc(Long servicioId, Pageable pageable);
 
     /** Una sola reseña por persona y servicio. */
     boolean existsByServicioIdAndAutorId(Long servicioId, Long autorId);
