@@ -1,6 +1,8 @@
 package com.uade.amicus.repository;
 
 import com.uade.amicus.model.Servicio;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,7 +18,7 @@ public interface ServicioRepository extends JpaRepository<Servicio, Long> {
      * Catalogo de la home. La consigna pide el listado ordenado alfabeticamente.
      * Solo servicios activos: los dados de baja no se listan.
      */
-    List<Servicio> findByActivoTrueOrderByTituloAsc();
+    Page<Servicio> findByActivoTrueOrderByTituloAsc(Pageable pageable);
 
     /**
      * Busqueda con filtros opcionales.
@@ -38,10 +40,11 @@ public interface ServicioRepository extends JpaRepository<Servicio, Long> {
               and (:conCupo = false or s.cuposDisponibles > 0)
             order by s.titulo asc
             """)
-    List<Servicio> buscar(@Param("categoriaId") Long categoriaId,
+    Page<Servicio> buscar(@Param("categoriaId") Long categoriaId,
                           @Param("zonaId") Long zonaId,
                           @Param("texto") String texto,
-                          @Param("conCupo") boolean conCupo);
+                          @Param("conCupo") boolean conCupo,
+                          Pageable pageable);
 
     /**
      * Detalle del servicio. join fetch trae en una sola consulta el servicio con

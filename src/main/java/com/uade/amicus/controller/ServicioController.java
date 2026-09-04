@@ -3,6 +3,7 @@ package com.uade.amicus.controller;
 import com.uade.amicus.dto.request.ActualizarCuposRequest;
 import com.uade.amicus.dto.request.ImagenRequest;
 import com.uade.amicus.dto.request.ServicioRequest;
+import com.uade.amicus.dto.response.PaginaResponse;
 import com.uade.amicus.dto.response.ServicioDetalleResponse;
 import com.uade.amicus.dto.response.ServicioResumenResponse;
 import com.uade.amicus.service.ServicioService;
@@ -41,20 +42,22 @@ public class ServicioController {
      * solo endpoint en vez de multiplicar rutas.
      */
     @Operation(summary = "Catalogo de servicios",
-            description = "Listado ordenado alfabeticamente, solo servicios activos. Todos los filtros son opcionales: sin ninguno devuelve el catalogo completo. La consigna pide poder acceder a la informacion completa o filtrada, y este endpoint resuelve las dos formas.")
+            description = "Listado ordenado alfabeticamente, solo servicios activos, paginado. Todos los filtros son opcionales: sin ninguno devuelve el catalogo completo. La consigna pide poder acceder a la informacion completa o filtrada, y este endpoint resuelve las dos formas.")
     @GetMapping
-    public ResponseEntity<List<ServicioResumenResponse>> listar(
+    public ResponseEntity<PaginaResponse<ServicioResumenResponse>> listar(
             @RequestParam(required = false) Long categoriaId,
             @RequestParam(required = false) Long zonaId,
             @RequestParam(required = false) String q,
-            @RequestParam(defaultValue = "false") boolean conCupo) {
+            @RequestParam(defaultValue = "false") boolean conCupo,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
         boolean sinFiltros = categoriaId == null && zonaId == null
                 && (q == null || q.isBlank()) && !conCupo;
 
         return ResponseEntity.ok(sinFiltros
-                ? servicioService.listar()
-                : servicioService.buscar(categoriaId, zonaId, q, conCupo));
+                ? servicioService.listar(page, size)
+                : servicioService.buscar(categoriaId, zonaId, q, conCupo, page, size));
     }
 
     /** Detalle: imagenes, descripcion completa, categoria, profesional y zonas. */
