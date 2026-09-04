@@ -60,6 +60,8 @@ public interface ServicioRepository extends JpaRepository<Servicio, Long> {
     /** Publicaciones de un usuario, para su panel. */
     List<Servicio> findByProfesionalIdAndActivoTrueOrderByTituloAsc(Long profesionalId);
 
-    /** Para bloquear el borrado de una categoria que todavia esta en uso. */
+    /** Para bloquear el borrado de una categoria o zona que todavia esta en uso. */
     boolean existsByCategoriaId(Long categoriaId);
+
+    boolean existsByZonasId(Long zonaId);
 }

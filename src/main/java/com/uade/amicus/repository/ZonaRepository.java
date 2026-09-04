@@ -16,4 +16,7 @@ public interface ZonaRepository extends JpaRepository<Zona, Long> {
     Set<Zona> findByIdIn(Set<Long> ids);
 
     boolean existsByNombreIgnoreCase(String nombre);
+
+    /** Para renombrar sin que choque contra el propio registro. */
+    boolean existsByNombreIgnoreCaseAndIdNot(String nombre, Long id);
 }
