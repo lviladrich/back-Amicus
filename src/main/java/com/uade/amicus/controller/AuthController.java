@@ -1,5 +1,6 @@
 package com.uade.amicus.controller;
 
+import com.uade.amicus.dto.request.ActualizarPerfilRequest;
 import com.uade.amicus.dto.request.LoginRequest;
 import com.uade.amicus.dto.request.RegistroRequest;
 import com.uade.amicus.dto.response.UsuarioResponse;
@@ -55,5 +56,16 @@ public class AuthController {
     @GetMapping("/usuarios/{id}")
     public ResponseEntity<UsuarioResponse> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(usuarioService.buscarPorId(id));
+    }
+
+    @Operation(summary = "Editar el perfil",
+            description = "Modifica nombre, apellido y mail. No permite cambiar username ni contrasena. "
+                    + "Solo el propio usuario puede editar su perfil: si usuarioId no coincide con el id "
+                    + "del path, devuelve 403.")
+    @PutMapping("/usuarios/{id}")
+    public ResponseEntity<UsuarioResponse> actualizarPerfil(@PathVariable Long id,
+                                                            @RequestParam Long usuarioId,
+                                                            @Valid @RequestBody ActualizarPerfilRequest request) {
+        return ResponseEntity.ok(usuarioService.actualizarPerfil(id, usuarioId, request));
     }
 }

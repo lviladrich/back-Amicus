@@ -1,9 +1,11 @@
 package com.uade.amicus.service;
 
+import com.uade.amicus.dto.request.ActualizarPerfilRequest;
 import com.uade.amicus.dto.request.LoginRequest;
 import com.uade.amicus.dto.request.RegistroRequest;
 import com.uade.amicus.dto.response.UsuarioResponse;
 import com.uade.amicus.exception.CredencialesInvalidasException;
+import com.uade.amicus.exception.OperacionNoPermitidaException;
 import com.uade.amicus.exception.RecursoNoEncontradoException;
 import com.uade.amicus.exception.ReglaDeNegocioException;
 import com.uade.amicus.model.Carrito;
@@ -101,5 +103,32 @@ public class UsuarioService {
     public Usuario obtenerEntidad(Long id) {
         return usuarioRepository.findById(id)
                 .orElseThrow(() -> RecursoNoEncontradoException.de("Usuario", id));
+    }
+
+    /**
+     * Edicion de perfil. No permite cambiar username ni password: son datos
+     * mas sensibles y quedan fuera de este endpoint.
+     *
+     * Igual que en ServicioService.validarPropietario, la identidad viaja como
+     * parametro y se compara contra el id del recurso.
+     */
+    @Transactional
+    public UsuarioResponse actualizarPerfil(Long id, Long usuarioId, ActualizarPerfilRequest request) {
+        Usuario usuario = obtenerEntidad(id);
+
+        if (usuarioId == null || !id.equals(usuarioId)) {
+            throw new OperacionNoPermitidaException("Solo el propio usuario puede editar su perfil");
+        }
+
+        if (!usuario.getEmail().equalsIgnoreCase(request.email())
+                && usuarioRepository.existsByEmail(request.email())) {
+            throw new ReglaDeNegocioException("Ya existe un usuario con el mail " + request.email());
+        }
+
+        usuario.setNombre(request.nombre());
+        usuario.setApellido(request.apellido());
+        usuario.setEmail(request.email());
+
+        return UsuarioResponse.desde(usuario);
     }
 }
