@@ -285,11 +285,36 @@ echo "     -> un comprobante cancelado sigue siendo un comprobante"
 
 # ------------------------------------------------------------
 titulo "14. PEDIDOS MAL FORMADOS"
-probar "Metodo no permitido da 405"             405 DELETE "/categorias/1"
+probar "Metodo no permitido da 405"             405 DELETE "/auth/usuarios/1"
 probar "JSON malformado da 400"                 400 POST "/auth/login" '{esto no es json}'
 probar "Falta parametro obligatorio da 400"     400 GET "/carrito"
 probar "Tipo invalido en la ruta da 400"        400 GET "/servicios/abc"
 probar "Ruta inexistente da 404"                404 GET "/no-existe"
+
+# ------------------------------------------------------------
+titulo "15. ABM COMPLETO DE CATEGORIAS Y ZONAS"
+probar "Crear categoria de prueba"              201 POST "/categorias" \
+  "{\"nombre\":\"CategoriaPrueba$SUFIJO\",\"descripcion\":\"Solo para probar el ABM\"}"
+CAT_PRUEBA=$(campo id)
+probar "Buscar la categoria creada"             200 GET "/categorias/$CAT_PRUEBA"
+probar "Categoria inexistente da 404"           404 GET "/categorias/999999"
+probar "No se puede borrar una categoria en uso" 409 DELETE "/categorias/1"
+echo "     -> $(campo mensaje)"
+probar "Borrar la categoria de prueba"          204 DELETE "/categorias/$CAT_PRUEBA"
+probar "La categoria borrada ya no existe"      404 GET "/categorias/$CAT_PRUEBA"
+
+probar "Crear zona de prueba"                   201 POST "/zonas" \
+  "{\"nombre\":\"ZonaPrueba$SUFIJO\"}"
+ZONA_PRUEBA=$(campo id)
+probar "Buscar la zona creada"                  200 GET "/zonas/$ZONA_PRUEBA"
+probar "Zona inexistente da 404"                404 GET "/zonas/999999"
+probar "Modificar el nombre de la zona"         200 PUT "/zonas/$ZONA_PRUEBA" \
+  "{\"nombre\":\"ZonaPruebaModificada$SUFIJO\"}"
+echo "     -> nombre: $(campo nombre)"
+probar "No se puede borrar una zona en uso"     409 DELETE "/zonas/4"
+echo "     -> $(campo mensaje)"
+probar "Borrar la zona de prueba"               204 DELETE "/zonas/$ZONA_PRUEBA"
+probar "La zona borrada ya no existe"           404 GET "/zonas/$ZONA_PRUEBA"
 
 # ------------------------------------------------------------
 echo
