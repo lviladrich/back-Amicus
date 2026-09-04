@@ -84,6 +84,16 @@ probar "Login correcto"                       200 POST "/auth/login" \
 probar "Rechazar password incorrecta"         401 POST "/auth/login" \
   "{\"email\":\"cli$SUFIJO@mail.com\",\"password\":\"equivocada\"}"
 
+probar "Editar el perfil propio"              200 PUT "/auth/usuarios/$CLI?usuarioId=$CLI" \
+  "{\"nombre\":\"Lucia Editada\",\"apellido\":\"Viladrich Editada\",\"email\":\"cli$SUFIJO.editado@mail.com\"}"
+echo "     -> username no cambio: $(campo username)"
+probar "Rechazar que otro edite el perfil"    403 PUT "/auth/usuarios/$PRO?usuarioId=$CLI" \
+  "{\"nombre\":\"Hackeado\",\"apellido\":\"Hackeado\",\"email\":\"hack$SUFIJO@mail.com\"}"
+probar "Rechazar mail duplicado en la edicion" 400 PUT "/auth/usuarios/$PRO?usuarioId=$PRO" \
+  "{\"nombre\":\"Martin\",\"apellido\":\"Gomez\",\"email\":\"cli$SUFIJO.editado@mail.com\"}"
+probar "Rechazar datos invalidos en la edicion" 400 PUT "/auth/usuarios/$CLI?usuarioId=$CLI" \
+  '{"nombre":"","apellido":"Viladrich","email":"no-es-mail"}'
+
 # ------------------------------------------------------------
 titulo "3. PUBLICAR SERVICIOS"
 probar "Publicar servicio con 3 cupos"        201 POST "/servicios" \
