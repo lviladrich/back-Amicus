@@ -87,13 +87,16 @@ public class CarritoService {
                             + servicio.getTitulo() + "\"");
         }
 
-        Frecuencia frecuencia = request.frecuenciaOUnica();
+        Frecuencia frecuencia = existente != null && request.frecuencia() == null
+                ? existente.getFrecuencia()
+                : request.frecuenciaOUnica();
+
         validarRecurrencia(frecuencia, cantidadFinal);
 
         if (existente != null) {
             existente.setCantidad(cantidadFinal);
-            // La frecuencia recibida redefine la linea: no se pueden convivir dos
-            // recurrencias distintas del mismo servicio en un solo carrito.
+
+            // Si no se envia una nueva frecuencia, se conserva la que ya tenia el item.
             existente.setFrecuencia(frecuencia);
         } else {
             carrito.agregarItem(CarritoItem.builder()
