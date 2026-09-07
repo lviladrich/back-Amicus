@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.validation.annotation.Validated;
+import com.uade.amicus.dto.request.ActualizarServicioRequest;
 
 import java.util.List;
 
@@ -93,15 +94,24 @@ public class ServicioController {
         return ResponseEntity.status(HttpStatus.CREATED).body(servicioService.crear(request));
     }
 
-    /** PUT reemplaza el recurso completo. */
-    @Operation(summary = "Modificar una publicacion",
-            description = "PUT reemplaza el recurso completo: hay que enviar todos los campos. Solo el profesional que publico el servicio puede modificarlo: si usuarioId no coincide, devuelve 403.")
-    @PutMapping("/{id}")
-    public ResponseEntity<ServicioDetalleResponse> actualizar(@PathVariable Long id,
-                                                              @RequestParam Long usuarioId,
-                                                              @Valid @RequestBody ServicioRequest request) {
-        return ResponseEntity.ok(servicioService.actualizar(id, usuarioId, request));
-    }
+    /** Modifica los campos editables de una publicacion. */
+        @Operation(
+                summary = "Modificar una publicacion",
+                description = "Modifica titulo, descripcion, precio, cupos, categoria y zonas. "
+                        + "El profesional propietario no puede cambiarse y las imagenes "
+                        + "se gestionan mediante sus endpoints especificos. "
+                        + "Solo el profesional que publico el servicio puede modificarlo."
+        )
+        @PutMapping("/{id}")
+        public ResponseEntity<ServicioDetalleResponse> actualizar(
+                @PathVariable Long id,
+                @RequestParam Long usuarioId,
+                @Valid @RequestBody ActualizarServicioRequest request) {
+
+        return ResponseEntity.ok(
+                servicioService.actualizar(id, usuarioId, request)
+        );
+        }
 
     /**
      * PATCH y no PUT: modifica un solo campo, no reemplaza el recurso entero.

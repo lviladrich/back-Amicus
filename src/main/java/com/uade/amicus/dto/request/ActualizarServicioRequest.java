@@ -7,16 +7,16 @@ import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Set;
 
 /**
- * Alta de una publicacion.
+ * Modificacion de una publicacion.
  *
- * Recibe ids de categoria y zonas, no objetos completos: el cliente no tiene por
- * que enviar una categoria entera para decir a cual pertenece.
+ * Solo incluye los campos editables.
+ * El profesional propietario no puede cambiarse y las imagenes
+ * se administran mediante endpoints especificos.
  */
-public record ServicioRequest(
+public record ActualizarServicioRequest(
 
         @NotBlank(message = "El titulo es obligatorio")
         @Size(max = 120)
@@ -37,10 +37,6 @@ public record ServicioRequest(
         @NotNull(message = "La categoria es obligatoria")
         Long categoriaId,
 
-        @NotNull(message = "El profesional que publica es obligatorio")
-        Long profesionalId,
+        Set<Long> zonaIds
 
-        Set<Long> zonaIds,
-
-        List<String> imagenes
 ) {}

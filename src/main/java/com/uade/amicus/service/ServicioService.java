@@ -1,5 +1,4 @@
 package com.uade.amicus.service;
-
 import com.uade.amicus.dto.request.ActualizarCuposRequest;
 import com.uade.amicus.dto.request.ImagenRequest;
 import com.uade.amicus.dto.request.ServicioRequest;
@@ -17,6 +16,7 @@ import com.uade.amicus.repository.ServicioRepository;
 import com.uade.amicus.util.Paginacion;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.uade.amicus.dto.request.ActualizarServicioRequest;
 
 import java.util.List;
 
@@ -138,7 +138,7 @@ public class ServicioService {
      * confirmar. Se llama dirty checking.
      */
     @Transactional
-    public ServicioDetalleResponse actualizar(Long id, Long usuarioId, ServicioRequest request) {
+    public ServicioDetalleResponse actualizar(Long id, Long usuarioId, ActualizarServicioRequest request) {
         Servicio servicio = obtenerEntidad(id);
         validarPropietario(servicio, usuarioId, "modificar");
 
