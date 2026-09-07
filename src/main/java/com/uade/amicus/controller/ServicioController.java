@@ -13,6 +13,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
 
@@ -22,6 +25,7 @@ import java.util.List;
  * Cubre dos requisitos de la consigna: el listado ordenado alfabeticamente de la
  * home con su detalle, y la gestion de publicaciones por parte del profesional.
  */
+@Validated
 @Tag(name = "4. Servicios", description = "Catalogo y gestion de publicaciones")
 @RestController
 @RequestMapping("/api/servicios")
@@ -49,8 +53,13 @@ public class ServicioController {
             @RequestParam(required = false) Long zonaId,
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "false") boolean conCupo,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "0")
+            @Min(value = 0, message = "La pagina no puede ser negativa")
+            int page,
+            @RequestParam(defaultValue = "10")
+            @Min(value = 1, message = "El tamaño de pagina debe ser al menos 1")
+            @Max(value = 100, message = "El tamaño de pagina no puede superar 100")
+            int size) {
 
         boolean sinFiltros = categoriaId == null && zonaId == null
                 && (q == null || q.isBlank()) && !conCupo;
