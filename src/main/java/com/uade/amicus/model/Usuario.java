@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -53,6 +54,21 @@ public class Usuario {
     private Boolean activo;
 
     /**
+     * STRING y no ORDINAL: en la tabla se guarda "ADMIN" y no un 1. Con ORDINAL,
+     * reordenar el enum cambiaria el rol de todos los usuarios ya guardados.
+     *
+     * ColumnDefault: la columna se agrego cuando ya habia usuarios cargados en
+     * las bases locales de cada integrante. Sin un default a nivel de tabla,
+     * Hibernate no puede agregar una columna NOT NULL a filas existentes y la
+     * aplicacion no arranca. Con el default, los usuarios previos pasan a ser
+     * USUARIO automaticamente.
+     */
+    @Enumerated(EnumType.STRING)
+    @ColumnDefault("'USUARIO'")
+    @Column(nullable = false, length = 20)
+    private Rol rol;
+
+    /**
      * Servicios que este usuario publico.
      * mappedBy indica que la columna profesional_id vive en la tabla servicios.
      */
@@ -68,6 +84,9 @@ public class Usuario {
         }
         if (activo == null) {
             activo = true;
+        }
+        if (rol == null) {
+            rol = Rol.USUARIO;
         }
     }
 }

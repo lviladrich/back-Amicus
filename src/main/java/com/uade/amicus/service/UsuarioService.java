@@ -9,6 +9,7 @@ import com.uade.amicus.exception.OperacionNoPermitidaException;
 import com.uade.amicus.exception.RecursoNoEncontradoException;
 import com.uade.amicus.exception.ReglaDeNegocioException;
 import com.uade.amicus.model.Carrito;
+import com.uade.amicus.model.Rol;
 import com.uade.amicus.model.Usuario;
 import com.uade.amicus.repository.CarritoRepository;
 import com.uade.amicus.repository.UsuarioRepository;
@@ -61,6 +62,9 @@ public class UsuarioService {
                 .password(passwordEncoder.encode(request.password()))
                 .nombre(request.nombre())
                 .apellido(request.apellido())
+                // El rol lo decide el sistema, nunca el cliente: si viniera en el
+                // request, cualquiera podria registrarse como ADMIN.
+                .rol(Rol.USUARIO)
                 .build();
 
         Usuario guardado = usuarioRepository.save(usuario);

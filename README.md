@@ -53,8 +53,23 @@ repository/   @Repository extends JpaRepository, acceso a datos
 model/        @Entity, mapeo a tablas con relaciones JPA
 dto/          objetos de entrada y salida, desacoplan las entidades del HTTP
 exception/    excepciones propias y manejador global de errores
+security/     UserDetails y UserDetailsService, el puente con Spring Security
 config/       configuración y carga de datos inicial
 ```
+
+## Usuarios y roles
+
+Hay dos roles. **USUARIO** es todo el que se registra por la API: publica
+servicios y contrata los de otros, las dos cosas. **ADMIN** mantiene el
+catálogo del sistema (categorías y zonas) y no se registra: se crea solo al
+arrancar la aplicación.
+
+| Usuario | Mail | Contraseña | Rol |
+|---|---|---|---|
+| admin | `admin@amicus.com` | `admin123` | ADMIN |
+
+Por ahora ningún endpoint exige rol: la cadena de seguridad está configurada
+en modo abierto hasta incorporar JWT.
 
 ## Endpoints
 

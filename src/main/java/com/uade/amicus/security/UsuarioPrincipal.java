@@ -2,6 +2,7 @@ package com.uade.amicus.security;
 
 import com.uade.amicus.model.Usuario;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
@@ -37,12 +38,15 @@ public class UsuarioPrincipal implements UserDetails {
     }
 
     /**
-     * Permisos del usuario. Se completa cuando la entidad tenga rol; por ahora
-     * ningun endpoint exige uno, asi que una lista vacia es correcta.
+     * Permisos del usuario, en el formato que Spring Security entiende.
+     *
+     * Un rol se traduce en una GrantedAuthority con la convencion "ROLE_" +
+     * nombre. El prefijo importa: es lo que permite escribir hasRole("ADMIN")
+     * en las reglas de acceso cuando se cierre el SecurityFilterChain.
      */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+        return List.of(new SimpleGrantedAuthority("ROLE_" + usuario.getRol().name()));
     }
 
     @Override

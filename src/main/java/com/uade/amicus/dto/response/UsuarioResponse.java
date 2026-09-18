@@ -1,5 +1,6 @@
 package com.uade.amicus.dto.response;
 
+import com.uade.amicus.model.Rol;
 import com.uade.amicus.model.Usuario;
 
 /**
@@ -14,7 +15,8 @@ public record UsuarioResponse(
         String username,
         String email,
         String nombre,
-        String apellido
+        String apellido,
+        Rol rol
 ) {
     public static UsuarioResponse desde(Usuario usuario) {
         return new UsuarioResponse(
@@ -22,7 +24,8 @@ public record UsuarioResponse(
                 usuario.getUsername(),
                 usuario.getEmail(),
                 usuario.getNombre(),
-                usuario.getApellido()
+                usuario.getApellido(),
+                usuario.getRol()
         );
     }
 }
