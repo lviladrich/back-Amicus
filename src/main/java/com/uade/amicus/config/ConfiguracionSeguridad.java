@@ -2,7 +2,9 @@ package com.uade.amicus.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -56,22 +58,26 @@ public class ConfiguracionSeguridad {
      *   token devolveria 403.
      *
      * - sesion STATELESS: el servidor no guarda estado entre pedidos. Cada
-     *   request tiene que traer su propia identidad (mas adelante, un token
-     *   JWT). Es la base para que el back pueda escalar y para que el front no
-     *   dependa de cookies.
+     *   request tiene que traer su propia identidad. Por eso el metodo de
+     *   autenticacion es httpBasic: manda mail y contrasena en cada pedido, sin
+     *   necesitar una sesion ni un token todavia.
      *
-     * - permitAll: por ahora ningun endpoint exige autenticacion. Esta es la
-     *   linea que se reemplaza por reglas de acceso (por ejemplo, que solo un
-     *   ADMIN pueda borrar categorias) cuando se incorpore el filtro JWT.
-     *   Hasta entonces la API se comporta igual que antes de sumar Spring
-     *   Security, pero con UserDetails y roles ya definidos.
+     * - reglas de acceso: crear, modificar y borrar categorias o zonas requiere
+     *   el rol ADMIN, porque son datos del catalogo del sistema, no de un
+     *   usuario en particular. Listarlas sigue siendo publico, y el resto de la
+     *   API (servicios, carrito, ordenes, resenas) no cambia: sigue manejando
+     *   sus propios permisos con el usuarioId, como hasta ahora.
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sesion -> sesion.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.GET, "/api/categorias/**", "/api/zonas/**").permitAll()
+                        .requestMatchers("/api/categorias/**", "/api/zonas/**").hasRole("ADMIN")
+                        .anyRequest().permitAll())
+                .httpBasic(Customizer.withDefaults());
 
         return http.build();
     }
