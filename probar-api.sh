@@ -11,15 +11,18 @@ rojo()   { printf "\033[31m%s\033[0m" "$1"; }
 titulo() { printf "\n\033[1;36m%s\033[0m\n" "$1"; }
 
 # Ejecuta una peticion y compara el codigo HTTP con el esperado.
+# El sexto parametro es opcional: credenciales "mail:contrasena" para Basic Auth.
 probar() {
-    local descripcion="$1" esperado="$2" metodo="$3" ruta="$4" cuerpo="$5"
+    local descripcion="$1" esperado="$2" metodo="$3" ruta="$4" cuerpo="$5" credenciales="$6"
     local codigo
+    local auth=()
+    [ -n "$credenciales" ] && auth=(-u "$credenciales")
 
     if [ -n "$cuerpo" ]; then
-        codigo=$(curl -s -o /tmp/amicus_resp.json -w "%{http_code}" \
+        codigo=$(curl -s -o /tmp/amicus_resp.json -w "%{http_code}" "${auth[@]}" \
                  -X "$metodo" "$API$ruta" -H 'Content-Type: application/json' -d "$cuerpo")
     else
-        codigo=$(curl -s -o /tmp/amicus_resp.json -w "%{http_code}" -X "$metodo" "$API$ruta")
+        codigo=$(curl -s -o /tmp/amicus_resp.json -w "%{http_code}" "${auth[@]}" -X "$metodo" "$API$ruta")
     fi
 
     if [ "$codigo" = "$esperado" ]; then
@@ -308,28 +311,35 @@ probar "Tipo invalido en la ruta da 400"        400 GET "/servicios/abc"
 probar "Ruta inexistente da 404"                404 GET "/no-existe"
 
 # ------------------------------------------------------------
-titulo "15. ABM COMPLETO DE CATEGORIAS Y ZONAS"
+titulo "15. ABM COMPLETO DE CATEGORIAS Y ZONAS (solo ADMIN)"
+ADMIN="admin@amicus.com:admin123"
+
+probar "Sin credenciales da 401"                401 POST "/categorias" \
+  "{\"nombre\":\"Intento$SUFIJO\",\"descripcion\":\"x\"}"
+probar "Un usuario sin rol ADMIN da 403"        403 POST "/categorias" \
+  "{\"nombre\":\"Intento$SUFIJO\",\"descripcion\":\"x\"}" "pro$SUFIJO@mail.com:secreto123"
+
 probar "Crear categoria de prueba"              201 POST "/categorias" \
-  "{\"nombre\":\"CategoriaPrueba$SUFIJO\",\"descripcion\":\"Solo para probar el ABM\"}"
+  "{\"nombre\":\"CategoriaPrueba$SUFIJO\",\"descripcion\":\"Solo para probar el ABM\"}" "$ADMIN"
 CAT_PRUEBA=$(campo id)
 probar "Buscar la categoria creada"             200 GET "/categorias/$CAT_PRUEBA"
 probar "Categoria inexistente da 404"           404 GET "/categorias/999999"
-probar "No se puede borrar una categoria en uso" 409 DELETE "/categorias/1"
+probar "No se puede borrar una categoria en uso" 409 DELETE "/categorias/1" "" "$ADMIN"
 echo "     -> $(campo mensaje)"
-probar "Borrar la categoria de prueba"          204 DELETE "/categorias/$CAT_PRUEBA"
+probar "Borrar la categoria de prueba"          204 DELETE "/categorias/$CAT_PRUEBA" "" "$ADMIN"
 probar "La categoria borrada ya no existe"      404 GET "/categorias/$CAT_PRUEBA"
 
 probar "Crear zona de prueba"                   201 POST "/zonas" \
-  "{\"nombre\":\"ZonaPrueba$SUFIJO\"}"
+  "{\"nombre\":\"ZonaPrueba$SUFIJO\"}" "$ADMIN"
 ZONA_PRUEBA=$(campo id)
 probar "Buscar la zona creada"                  200 GET "/zonas/$ZONA_PRUEBA"
 probar "Zona inexistente da 404"                404 GET "/zonas/999999"
 probar "Modificar el nombre de la zona"         200 PUT "/zonas/$ZONA_PRUEBA" \
-  "{\"nombre\":\"ZonaPruebaModificada$SUFIJO\"}"
+  "{\"nombre\":\"ZonaPruebaModificada$SUFIJO\"}" "$ADMIN"
 echo "     -> nombre: $(campo nombre)"
-probar "No se puede borrar una zona en uso"     409 DELETE "/zonas/4"
+probar "No se puede borrar una zona en uso"     409 DELETE "/zonas/4" "" "$ADMIN"
 echo "     -> $(campo mensaje)"
-probar "Borrar la zona de prueba"               204 DELETE "/zonas/$ZONA_PRUEBA"
+probar "Borrar la zona de prueba"               204 DELETE "/zonas/$ZONA_PRUEBA" "" "$ADMIN"
 probar "La zona borrada ya no existe"           404 GET "/zonas/$ZONA_PRUEBA"
 
 # ------------------------------------------------------------
