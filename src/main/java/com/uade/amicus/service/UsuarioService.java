@@ -13,6 +13,12 @@ import com.uade.amicus.model.Rol;
 import com.uade.amicus.model.Usuario;
 import com.uade.amicus.repository.CarritoRepository;
 import com.uade.amicus.repository.UsuarioRepository;
+import com.uade.amicus.security.UsuarioPrincipal;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +29,7 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final CarritoRepository carritoRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
 
     /**
      * Inyeccion por constructor y no por campo con @Autowired.
@@ -33,10 +40,12 @@ public class UsuarioService {
      */
     public UsuarioService(UsuarioRepository usuarioRepository,
                           CarritoRepository carritoRepository,
-                          PasswordEncoder passwordEncoder) {
+                          PasswordEncoder passwordEncoder,
+                          AuthenticationManager authenticationManager) {
         this.usuarioRepository = usuarioRepository;
         this.carritoRepository = carritoRepository;
         this.passwordEncoder = passwordEncoder;
+        this.authenticationManager = authenticationManager;
     }
 
     /**
@@ -77,24 +86,31 @@ public class UsuarioService {
     /**
      * Login por mail y contrasena.
      *
+     * Se delega en el AuthenticationManager en vez de comparar la contrasena a
+     * mano: es el mismo camino que va a recorrer cada pedido HTTP autenticado
+     * (por ejemplo, con Basic Auth contra los endpoints de ADMIN), asi que el
+     * login queda probando el mecanismo real y no una version paralela de la
+     * autenticacion.
+     *
      * El mensaje de error es el mismo para "el mail no existe" y para "la
-     * contrasena no coincide". Es a proposito: si fueran distintos, cualquiera
-     * podria averiguar que mails estan registrados probando de a uno.
+     * contrasena no coincide" (las dos caen en BadCredentialsException). Es a
+     * proposito: si fueran distintos, cualquiera podria averiguar que mails
+     * estan registrados probando de a uno.
      */
     @Transactional(readOnly = true)
     public UsuarioResponse login(LoginRequest request) {
-        Usuario usuario = usuarioRepository.findByEmail(request.email())
-                .orElseThrow(() -> new CredencialesInvalidasException("Mail o contrasena incorrectos"));
-
-        if (!passwordEncoder.matches(request.password(), usuario.getPassword())) {
+        Authentication autenticacion;
+        try {
+            autenticacion = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.email(), request.password()));
+        } catch (DisabledException ex) {
+            throw new CredencialesInvalidasException("La cuenta esta deshabilitada");
+        } catch (BadCredentialsException ex) {
             throw new CredencialesInvalidasException("Mail o contrasena incorrectos");
         }
 
-        if (Boolean.FALSE.equals(usuario.getActivo())) {
-            throw new CredencialesInvalidasException("La cuenta esta deshabilitada");
-        }
-
-        return UsuarioResponse.desde(usuario);
+        UsuarioPrincipal principal = (UsuarioPrincipal) autenticacion.getPrincipal();
+        return UsuarioResponse.desde(principal.getUsuario());
     }
 
     @Transactional(readOnly = true)
