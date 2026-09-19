@@ -5,10 +5,15 @@ import com.uade.amicus.dto.response.PaginaResponse;
 import com.uade.amicus.service.CheckoutService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 /** Historial de compras. */
+@Validated
 @Tag(name = "6. Ordenes", description = "Historial de compras")
 @RestController
 @RequestMapping("/api/ordenes")
@@ -24,16 +29,26 @@ public class OrdenController {
             description = "Ordenes del usuario, de la mas reciente a la mas antigua, paginado.")
     @GetMapping
     public ResponseEntity<PaginaResponse<OrdenResponse>> listarPorUsuario(
-            @RequestParam Long usuarioId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam
+            @Positive(message = "El id de usuario debe ser mayor que 0")
+            Long usuarioId,
+            @RequestParam(defaultValue = "0")
+            @Min(value = 0, message = "La pagina no puede ser negativa")
+            int page,
+            @RequestParam(defaultValue = "10")
+            @Min(value = 1, message = "El tamaño de pagina debe ser al menos 1")
+            @Max(value = 100, message = "El tamaño de pagina no puede superar 100")
+            int size) {
         return ResponseEntity.ok(checkoutService.listarPorUsuario(usuarioId, page, size));
     }
 
     @Operation(summary = "Detalle de una orden",
             description = "Muestra el titulo y el precio CONGELADOS al momento de la compra, no los actuales del servicio. Un comprobante no se reescribe.")
     @GetMapping("/{id}")
-    public ResponseEntity<OrdenResponse> buscarPorId(@PathVariable Long id) {
+    public ResponseEntity<OrdenResponse> buscarPorId(
+            @PathVariable
+            @Positive(message = "El id de la orden debe ser mayor que 0")
+            Long id) {
         return ResponseEntity.ok(checkoutService.buscarPorId(id));
     }
 
@@ -44,8 +59,13 @@ public class OrdenController {
     @Operation(summary = "Cancelar una orden",
             description = "Pasa la orden a estado CANCELADA y devuelve los cupos a cada servicio, que es la operacion inversa del checkout. La orden no se borra ni cambia su total: sigue en el historial. Devuelve 403 si el usuario no es quien hizo la compra y 400 si ya estaba cancelada.")
     @PatchMapping("/{id}/cancelar")
-    public ResponseEntity<OrdenResponse> cancelar(@PathVariable Long id,
-                                                  @RequestParam Long usuarioId) {
+    public ResponseEntity<OrdenResponse> cancelar(
+            @PathVariable
+            @Positive(message = "El id de la orden debe ser mayor que 0")
+            Long id,
+            @RequestParam
+            @Positive(message = "El id de usuario debe ser mayor que 0")
+            Long usuarioId) {
         return ResponseEntity.ok(checkoutService.cancelar(id, usuarioId));
     }
 }
