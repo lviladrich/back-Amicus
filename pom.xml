@@ -19,6 +19,20 @@
 
 	<properties>
 		<java.version>21</java.version>
+		<!--
+			Lombok genera codigo leyendo estructuras internas del compilador,
+			asi que cada version soporta hasta un JDK determinado. La que fija
+			Spring Boot 3.5.3 es la 1.18.38, anterior a JDK 24.
+
+			Se sube la version para poder compilar con un JDK reciente. El
+			bytecode se sigue generando para Java 21, que es lo que declara
+			java.version mas arriba.
+
+			Va de la mano con annotationProcessorPaths, mas abajo en <build>:
+			sin esa configuracion el procesador no llega a ejecutarse, por mas
+			que la version sea la correcta.
+		-->
+		<lombok.version>1.18.46</lombok.version>
 	</properties>
 
 	<dependencies>
@@ -94,6 +108,34 @@
 
 	<build>
 		<plugins>
+			<!--
+				Declara Lombok como procesador de anotaciones de forma explicita.
+
+				Hasta JDK 22, javac buscaba procesadores en el classpath y los
+				ejecutaba solo: alcanzaba con tener el jar de Lombok como
+				dependencia. Desde JDK 23 eso dejo de hacerse por defecto, asi
+				que el procesador no corre, no se genera ningun getter ni
+				builder, y la compilacion falla con decenas de
+				"cannot find symbol: builder()" que parecen errores del
+				proyecto y no del entorno.
+
+				annotationProcessorPaths le dice a javac exactamente que
+				procesadores usar, sin depender de esa busqueda automatica.
+				Funciona igual en JDK 21 que en los mas nuevos.
+			-->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+							<version>${lombok.version}</version>
+						</path>
+					</annotationProcessorPaths>
+				</configuration>
+			</plugin>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>

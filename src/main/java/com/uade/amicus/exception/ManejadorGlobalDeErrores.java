@@ -1,6 +1,8 @@
 package com.uade.amicus.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -91,6 +93,47 @@ public class ManejadorGlobalDeErrores extends ResponseEntityExceptionHandler {
                 "El parametro '" + ex.getName() + "' con valor '" + ex.getValue()
                         + "' no se puede convertir a " + tipo,
                 request.getRequestURI(), null);
+    }
+
+    /**
+     * 400 por validacion de parametros sueltos (@RequestParam y @PathVariable).
+     *
+     * Es el hermano de handleMethodArgumentNotValid, que cubre los DTO anotados
+     * con @Valid. Cuando la restriccion no esta en un DTO sino directamente en
+     * un parametro del metodo -- @Positive Long usuarioId, @Min(0) int page --
+     * la validacion la hace el proxy que instala @Validated sobre el controller,
+     * y lo que se lanza es una ConstraintViolationException, que Spring no sabe
+     * traducir.
+     *
+     * Sin este manejador esa excepcion caia en el catch-all de Exception y
+     * terminaba en un 500: un pedido mal formado por el cliente se reportaba
+     * como una falla del servidor. Ademas el mensaje se filtraba crudo, con el
+     * nombre del metodo Java adentro ("ver.usuarioId: must be greater than 0").
+     *
+     * Se devuelve el mismo formato que las validaciones de DTO: 400 y el mapa
+     * de campo a mensaje, para que el cliente no tenga que distinguir dos
+     * formas distintas de error de validacion.
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<RespuestaError> parametrosInvalidos(ConstraintViolationException ex,
+                                                              HttpServletRequest request) {
+        Map<String, String> errores = new HashMap<>();
+        for (ConstraintViolation<?> violacion : ex.getConstraintViolations()) {
+            errores.put(nombreDelParametro(violacion), violacion.getMessage());
+        }
+        return construir(HttpStatus.BAD_REQUEST, "Hay parametros invalidos en el pedido",
+                request.getRequestURI(), errores);
+    }
+
+    /**
+     * El propertyPath de una violacion sobre un parametro viene como
+     * "metodo.parametro" (por ejemplo "ver.usuarioId"). Al cliente solo le
+     * sirve la ultima parte: el nombre del parametro que mando mal.
+     */
+    private String nombreDelParametro(ConstraintViolation<?> violacion) {
+        String ruta = violacion.getPropertyPath().toString();
+        int ultimoPunto = ruta.lastIndexOf('.');
+        return ultimoPunto >= 0 ? ruta.substring(ultimoPunto + 1) : ruta;
     }
 
     /**
