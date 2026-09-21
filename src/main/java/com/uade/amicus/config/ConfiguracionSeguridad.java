@@ -1,10 +1,10 @@
 package com.uade.amicus.config;
 
+import com.uade.amicus.security.PuenteDeErroresDeSeguridad;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -67,9 +67,16 @@ public class ConfiguracionSeguridad {
      *   usuario en particular. Listarlas sigue siendo publico, y el resto de la
      *   API (servicios, carrito, ordenes, resenas) no cambia: sigue manejando
      *   sus propios permisos con el usuarioId, como hasta ahora.
+     *
+     * - errores: cuando un filtro rechaza el pedido, el 401 y el 403 se
+     *   entregan al puente para que salgan como RespuestaError, igual que el
+     *   resto de la API. El puente se declara dos veces porque httpBasic trae
+     *   su propio entry point para las credenciales incorrectas, distinto del
+     *   que se usa cuando directamente no hay credenciales.
      */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                   PuenteDeErroresDeSeguridad puente) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sesion -> sesion.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -77,7 +84,10 @@ public class ConfiguracionSeguridad {
                         .requestMatchers(HttpMethod.GET, "/api/categorias/**", "/api/zonas/**").permitAll()
                         .requestMatchers("/api/categorias/**", "/api/zonas/**").hasRole("ADMIN")
                         .anyRequest().permitAll())
-                .httpBasic(Customizer.withDefaults());
+                .httpBasic(basic -> basic.authenticationEntryPoint(puente))
+                .exceptionHandling(errores -> errores
+                        .authenticationEntryPoint(puente)
+                        .accessDeniedHandler(puente));
 
         return http.build();
     }
