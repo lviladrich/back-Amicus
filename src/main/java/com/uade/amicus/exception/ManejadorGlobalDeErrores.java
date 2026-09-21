@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.Nullable;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -79,6 +81,31 @@ public class ManejadorGlobalDeErrores extends ResponseEntityExceptionHandler {
     public ResponseEntity<RespuestaError> noPermitido(OperacionNoPermitidaException ex,
                                                       HttpServletRequest request) {
         return construir(HttpStatus.FORBIDDEN, ex.getMessage(), request.getRequestURI(), null);
+    }
+
+    /**
+     * 401 del filtro de seguridad: el endpoint exige autenticacion y el pedido
+     * llego sin credenciales o con credenciales incorrectas.
+     *
+     * No nace en un controller: la trae PuenteDeErroresDeSeguridad desde la
+     * cadena de filtros. El mensaje es fijo porque el de Spring viene en ingles
+     * y distingue casos que no conviene revelar.
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<RespuestaError> noAutenticado(AuthenticationException ex,
+                                                        HttpServletRequest request) {
+        return construir(HttpStatus.UNAUTHORIZED,
+                "Este recurso requiere autenticacion: envia mail y contrasena validos",
+                request.getRequestURI(), null);
+    }
+
+    /** 403 del filtro de seguridad: el usuario esta autenticado y su rol no alcanza. */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<RespuestaError> rolInsuficiente(AccessDeniedException ex,
+                                                          HttpServletRequest request) {
+        return construir(HttpStatus.FORBIDDEN,
+                "Tu usuario no tiene el rol necesario para esta operacion",
+                request.getRequestURI(), null);
     }
 
     /**
