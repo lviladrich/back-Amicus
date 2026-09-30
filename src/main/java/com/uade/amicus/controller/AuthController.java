@@ -3,6 +3,7 @@ package com.uade.amicus.controller;
 import com.uade.amicus.dto.request.ActualizarPerfilRequest;
 import com.uade.amicus.dto.request.LoginRequest;
 import com.uade.amicus.dto.request.RegistroRequest;
+import com.uade.amicus.dto.response.LoginResponse;
 import com.uade.amicus.dto.response.UsuarioResponse;
 import com.uade.amicus.service.UsuarioService;
 import jakarta.validation.Valid;
@@ -44,11 +45,13 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.registrar(request));
     }
 
-    /** 200 OK: el login no crea nada, solo verifica. */
+    /** 200 OK: el login no crea nada, solo verifica y emite el token. */
     @Operation(summary = "Iniciar sesion",
-            description = "Valida mail y contrasena. Devuelve el mismo mensaje si el mail no existe o si la contrasena es incorrecta, para no revelar que mails estan registrados.")
+            description = "Valida mail y contrasena y devuelve un token JWT. Para usarlo, mandarlo en la "
+                    + "cabecera 'Authorization: Bearer <token>'. Devuelve el mismo mensaje si el mail no "
+                    + "existe o si la contrasena es incorrecta, para no revelar que mails estan registrados.")
     @PostMapping("/login")
-    public ResponseEntity<UsuarioResponse> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(usuarioService.login(request));
     }
 

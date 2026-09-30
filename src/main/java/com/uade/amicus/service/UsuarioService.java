@@ -3,6 +3,7 @@ package com.uade.amicus.service;
 import com.uade.amicus.dto.request.ActualizarPerfilRequest;
 import com.uade.amicus.dto.request.LoginRequest;
 import com.uade.amicus.dto.request.RegistroRequest;
+import com.uade.amicus.dto.response.LoginResponse;
 import com.uade.amicus.dto.response.UsuarioResponse;
 import com.uade.amicus.exception.CredencialesInvalidasException;
 import com.uade.amicus.exception.OperacionNoPermitidaException;
@@ -13,6 +14,7 @@ import com.uade.amicus.model.Rol;
 import com.uade.amicus.model.Usuario;
 import com.uade.amicus.repository.CarritoRepository;
 import com.uade.amicus.repository.UsuarioRepository;
+import com.uade.amicus.security.ServicioJwt;
 import com.uade.amicus.security.UsuarioPrincipal;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -30,6 +32,7 @@ public class UsuarioService {
     private final CarritoRepository carritoRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
+    private final ServicioJwt servicioJwt;
 
     /**
      * Inyeccion por constructor y no por campo con @Autowired.
@@ -41,11 +44,13 @@ public class UsuarioService {
     public UsuarioService(UsuarioRepository usuarioRepository,
                           CarritoRepository carritoRepository,
                           PasswordEncoder passwordEncoder,
-                          AuthenticationManager authenticationManager) {
+                          AuthenticationManager authenticationManager,
+                          ServicioJwt servicioJwt) {
         this.usuarioRepository = usuarioRepository;
         this.carritoRepository = carritoRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
+        this.servicioJwt = servicioJwt;
     }
 
     /**
@@ -98,7 +103,7 @@ public class UsuarioService {
      * estan registrados probando de a uno.
      */
     @Transactional(readOnly = true)
-    public UsuarioResponse login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
         Authentication autenticacion;
         try {
             autenticacion = authenticationManager.authenticate(
@@ -110,7 +115,13 @@ public class UsuarioService {
         }
 
         UsuarioPrincipal principal = (UsuarioPrincipal) autenticacion.getPrincipal();
-        return UsuarioResponse.desde(principal.getUsuario());
+
+        // Recien aca se emite el token: solo despues de que el
+        // AuthenticationManager confirmo la identidad.
+        return LoginResponse.de(
+                servicioJwt.generar(principal),
+                servicioJwt.duracionEnSegundos(),
+                UsuarioResponse.desde(principal.getUsuario()));
     }
 
     @Transactional(readOnly = true)
