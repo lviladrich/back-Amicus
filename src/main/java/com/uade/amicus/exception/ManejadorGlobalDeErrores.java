@@ -94,8 +94,17 @@ public class ManejadorGlobalDeErrores extends ResponseEntityExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<RespuestaError> noAutenticado(AuthenticationException ex,
                                                         HttpServletRequest request) {
+        // No se usa ex.getMessage(): los textos de Spring Security son internos
+        // ("Bad credentials") y ademas distinguen de mas. Pero si el pedido
+        // trajo un token, decirle que mande mail y contrasena no lo ayuda: ya
+        // mando una credencial, lo que necesita saber es que no sirve.
+        String cabecera = request.getHeader(HttpHeaders.AUTHORIZATION);
+        boolean trajoToken = cabecera != null && cabecera.startsWith("Bearer ");
+
         return construir(HttpStatus.UNAUTHORIZED,
-                "Este recurso requiere autenticacion: envia mail y contrasena validos",
+                trajoToken
+                        ? "El token es invalido o expiro"
+                        : "Este recurso requiere autenticacion: envia un token en la cabecera Authorization",
                 request.getRequestURI(), null);
     }
 
