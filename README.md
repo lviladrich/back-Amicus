@@ -68,8 +68,29 @@ arrancar la aplicación.
 |---|---|---|---|
 | admin | `admin@amicus.com` | `admin123` | ADMIN |
 
-Por ahora ningún endpoint exige rol: la cadena de seguridad está configurada
-en modo abierto hasta incorporar JWT.
+### Autenticación con JWT
+
+`POST /api/auth/login` devuelve un token firmado que vale 8 horas:
+
+```json
+{ "token": "eyJhbGciOi...", "tipo": "Bearer", "expiraEnSegundos": 28800,
+  "usuario": { "id": 1, "email": "admin@amicus.com", "rol": "ADMIN" } }
+```
+
+Ese token se manda en cada pedido que necesite identidad:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" -X POST http://localhost:8080/api/zonas \
+     -H "Content-Type: application/json" -d '{"nombre":"Villa Urquiza"}'
+```
+
+El ABM de categorías y zonas exige rol **ADMIN**; el resto del catálogo se
+lee sin autenticarse. Las demás operaciones (carrito, órdenes, reseñas)
+todavía reciben la identidad como parámetro `usuarioId`: moverlas al token es
+el paso siguiente.
+
+El secreto de firma se lee de la variable de entorno `AMICUS_JWT_SECRETO`, y
+si no está definida usa un valor de desarrollo que **no sirve para producción**.
 
 ## Endpoints
 
