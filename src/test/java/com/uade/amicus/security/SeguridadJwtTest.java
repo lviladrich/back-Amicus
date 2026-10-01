@@ -91,6 +91,22 @@ class SeguridadJwtTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    /**
+     * El carrito es el otro endpoint que exige estar autenticado, pero sin
+     * rol especifico: alcanza con cualquier usuario logueado, a diferencia
+     * de categorias/zonas que piden ADMIN.
+     */
+    @Test
+    @DisplayName("El carrito exige un token valido, de cualquier usuario autenticado")
+    void carritoExigeAutenticacion() throws Exception {
+        mockMvc.perform(get("/api/carrito"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(get("/api/carrito")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenDeAdmin))
+                .andExpect(status().isOk());
+    }
+
     @Test
     @DisplayName("El token de un usuario comun no alcanza para un endpoint de ADMIN")
     void tokenDeUsuarioComunNoAlcanza() throws Exception {
