@@ -79,9 +79,17 @@ public class ConfiguracionSeguridad {
      *
      * - reglas de acceso: crear, modificar y borrar categorias o zonas requiere
      *   el rol ADMIN, porque son datos del catalogo del sistema, no de un
-     *   usuario en particular. Listarlas sigue siendo publico, y el resto de la
-     *   API (servicios, carrito, ordenes, resenas) no cambia: sigue manejando
-     *   sus propios permisos con el usuarioId, como hasta ahora.
+     *   usuario en particular. Listarlas sigue siendo publico.
+     *
+     *   Carrito, ordenes, reseñas, publicar/editar servicios y editar el
+     *   perfil propio requieren estar autenticado (authenticated()). Antes el
+     *   dueno de cada recurso se identificaba con un usuarioId que mandaba el
+     *   propio cliente, asi que cualquiera podia operar en nombre de otro con
+     *   solo cambiar ese numero. Con el JWT funcionando, esos controllers
+     *   dejaron de confiar en ese parametro y toman el usuario del token
+     *   (@AuthenticationPrincipal). Consultar el catalogo, el detalle de un
+     *   servicio o sus reseñas sigue siendo publico: no hace falta estar
+     *   logueado para mirar, solo para comprar, publicar o reseñar.
      *
      * - errores: cuando un filtro rechaza el pedido, el 401 y el 403 se
      *   entregan al puente para que salgan como RespuestaError, igual que el
@@ -106,6 +114,12 @@ public class ConfiguracionSeguridad {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/api/categorias/**", "/api/zonas/**").permitAll()
                         .requestMatchers("/api/categorias/**", "/api/zonas/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/auth/usuarios/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/servicios/**").permitAll()
+                        .requestMatchers("/api/servicios/**").authenticated()
+                        .requestMatchers("/api/carrito/**").authenticated()
+                        .requestMatchers("/api/ordenes/**").authenticated()
+                        .requestMatchers("/api/resenas/**").authenticated()
                         .anyRequest().permitAll())
                 .httpBasic(basic -> basic.authenticationEntryPoint(puente))
                 .exceptionHandling(errores -> errores

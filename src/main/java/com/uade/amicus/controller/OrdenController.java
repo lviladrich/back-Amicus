@@ -2,6 +2,7 @@ package com.uade.amicus.controller;
 
 import com.uade.amicus.dto.response.OrdenResponse;
 import com.uade.amicus.dto.response.PaginaResponse;
+import com.uade.amicus.security.UsuarioPrincipal;
 import com.uade.amicus.service.CheckoutService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -9,6 +10,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,9 +31,7 @@ public class OrdenController {
             description = "Ordenes del usuario, de la mas reciente a la mas antigua, paginado.")
     @GetMapping
     public ResponseEntity<PaginaResponse<OrdenResponse>> listarPorUsuario(
-            @RequestParam
-            @Positive(message = "El id de usuario debe ser mayor que 0")
-            Long usuarioId,
+            @AuthenticationPrincipal UsuarioPrincipal principal,
             @RequestParam(defaultValue = "0")
             @Min(value = 0, message = "La pagina no puede ser negativa")
             int page,
@@ -39,7 +39,7 @@ public class OrdenController {
             @Min(value = 1, message = "El tamaño de pagina debe ser al menos 1")
             @Max(value = 100, message = "El tamaño de pagina no puede superar 100")
             int size) {
-        return ResponseEntity.ok(checkoutService.listarPorUsuario(usuarioId, page, size));
+        return ResponseEntity.ok(checkoutService.listarPorUsuario(principal.getUsuario().getId(), page, size));
     }
 
     @Operation(summary = "Detalle de una orden",
@@ -63,9 +63,7 @@ public class OrdenController {
             @PathVariable
             @Positive(message = "El id de la orden debe ser mayor que 0")
             Long id,
-            @RequestParam
-            @Positive(message = "El id de usuario debe ser mayor que 0")
-            Long usuarioId) {
-        return ResponseEntity.ok(checkoutService.cancelar(id, usuarioId));
+            @AuthenticationPrincipal UsuarioPrincipal principal) {
+        return ResponseEntity.ok(checkoutService.cancelar(id, principal.getUsuario().getId()));
     }
 }

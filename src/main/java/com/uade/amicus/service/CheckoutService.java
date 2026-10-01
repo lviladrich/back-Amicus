@@ -124,9 +124,8 @@ public class CheckoutService {
      * sigue en el historial. Un comprobante cancelado sigue siendo un
      * comprobante, y el usuario tiene que poder ver que existio.
      *
-     * Solo el usuario que hizo la compra puede cancelarla. Con la identidad
-     * viajando como parametro esto es lo maximo que se puede validar; con un
-     * token JWT el usuarioId saldria del token y no del pedido.
+     * Solo el usuario que hizo la compra puede cancelarla. El usuarioId ya no
+     * lo manda el cliente: el controller lo toma del token JWT.
      */
     @Transactional
     public OrdenResponse cancelar(Long id, Long usuarioId) {

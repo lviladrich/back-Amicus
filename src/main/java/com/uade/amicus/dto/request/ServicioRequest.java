@@ -15,6 +15,9 @@ import java.util.Set;
  *
  * Recibe ids de categoria y zonas, no objetos completos: el cliente no tiene por
  * que enviar una categoria entera para decir a cual pertenece.
+ *
+ * No incluye profesionalId: quien publica es el usuario autenticado, no un dato
+ * que el cliente elija. Lo toma el controller del token (ver ServicioController).
  */
 public record ServicioRequest(
 
@@ -36,9 +39,6 @@ public record ServicioRequest(
 
         @NotNull(message = "La categoria es obligatoria")
         Long categoriaId,
-
-        @NotNull(message = "El profesional que publica es obligatorio")
-        Long profesionalId,
 
         Set<Long> zonaIds,
 
