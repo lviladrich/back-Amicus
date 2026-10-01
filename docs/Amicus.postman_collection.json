@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Amicus - TPO Aplicaciones Interactivas",
-    "description": "Marketplace de servicios del hogar. Levantar la base con 'docker compose up -d' y la aplicacion con './mvnw spring-boot:run' antes de usar esta coleccion.",
+    "description": "Marketplace de servicios del hogar. Levantar la base con 'docker compose up -d' y la aplicacion con './mvnw spring-boot:run' antes de usar esta coleccion.\n\nLa mayoria de los endpoints requieren estar logueado. Antes de probar nada, correr en orden los 4 pedidos de '1. Autenticacion': Registro, Login, Registro (otra usuaria) y Login (otra usuaria). Los dos Login guardan el token en las variables de coleccion 'token' y 'tokenOtro' automaticamente (ver su pestana Tests). 'token' es quien publica los servicios; 'tokenOtro' es quien los compra y quien prueba que no puede tocar publicaciones ajenas.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -10,12 +10,16 @@
       "value": "http://localhost:8080"
     },
     {
-      "key": "usuarioId",
-      "value": "2"
-    },
-    {
       "key": "servicioId",
       "value": "1"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "tokenOtro",
+      "value": ""
     }
   ],
   "item": [
@@ -136,7 +140,20 @@
               "raw": "{\n  \"email\": \"lucia@mail.com\",\n  \"password\": \"secreto123\"\n}"
             }
           },
-          "response": []
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set('token', pm.response.json().token);",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Login con password incorrecta",
@@ -165,6 +182,77 @@
               "raw": "{\n  \"email\": \"lucia@mail.com\",\n  \"password\": \"otra\"\n}"
             }
           },
+          "response": []
+        },
+        {
+          "name": "Registro (otra usuaria)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/auth/registro",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "registro"
+              ]
+            },
+            "description": "201 CREATED. Una segunda cuenta: la que compra en el Carrito y la que intenta tocar publicaciones ajenas en las pruebas de ownership.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"sofia.g\",\n  \"email\": \"sofia@mail.com\",\n  \"password\": \"secreto123\",\n  \"nombre\": \"Sofia\",\n  \"apellido\": \"Gomez\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login (otra usuaria)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/auth/login",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "200 OK. Guarda el token en la variable de coleccion 'tokenOtro'.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"sofia@mail.com\",\n  \"password\": \"secreto123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set('tokenOtro', pm.response.json().token);",
+                  "}"
+                ]
+              }
+            }
+          ],
           "response": []
         }
       ]
@@ -397,7 +485,7 @@
             "description": "201 CREATED.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"titulo\": \"Instalacion de ventilador de techo\",\n  \"descripcion\": \"Incluye soporte, cableado y prueba de funcionamiento.\",\n  \"precio\": 25000.0,\n  \"cuposDisponibles\": 3,\n  \"categoriaId\": 1,\n  \"profesionalId\": 1,\n  \"zonaIds\": [\n    4,\n    2\n  ],\n  \"imagenes\": [\n    \"https://ejemplo.com/foto1.jpg\",\n    \"https://ejemplo.com/foto2.jpg\"\n  ]\n}"
+              "raw": "{\n  \"titulo\": \"Instalacion de ventilador de techo\",\n  \"descripcion\": \"Incluye soporte, cableado y prueba de funcionamiento.\",\n  \"precio\": 25000.0,\n  \"cuposDisponibles\": 3,\n  \"categoriaId\": 1,\n  \"zonaIds\": [\n    4,\n    2\n  ],\n  \"imagenes\": [\n    \"https://ejemplo.com/foto1.jpg\",\n    \"https://ejemplo.com/foto2.jpg\"\n  ]\n}"
             }
           },
           "response": []
@@ -413,7 +501,7 @@
               }
             ],
             "url": {
-              "raw": "{{base}}/api/servicios/{{servicioId}}?usuarioId=1",
+              "raw": "{{base}}/api/servicios/{{servicioId}}",
               "host": [
                 "{{base}}"
               ],
@@ -421,18 +509,12 @@
                 "api",
                 "servicios",
                 "{{servicioId}}"
-              ],
-              "query": [
-                {
-                  "key": "usuarioId",
-                  "value": "1"
-                }
               ]
             },
-            "description": "PUT reemplaza el recurso completo. Requiere usuarioId: solo el profesional que publico el servicio puede hacerlo, si no devuelve 403.",
+            "description": "PUT reemplaza el recurso completo. Solo el profesional que publico el servicio puede hacerlo (se identifica por el token): si no, devuelve 403.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"titulo\": \"Instalacion de ventilador de techo\",\n  \"descripcion\": \"Descripcion actualizada.\",\n  \"precio\": 40000.0,\n  \"cuposDisponibles\": 5,\n  \"categoriaId\": 1,\n  \"profesionalId\": 1,\n  \"zonaIds\": [\n    4\n  ]\n}"
+              "raw": "{\n  \"titulo\": \"Instalacion de ventilador de techo\",\n  \"descripcion\": \"Descripcion actualizada.\",\n  \"precio\": 40000.0,\n  \"cuposDisponibles\": 5,\n  \"categoriaId\": 1,\n  \"zonaIds\": [\n    4\n  ]\n}"
             }
           },
           "response": []
@@ -448,7 +530,7 @@
               }
             ],
             "url": {
-              "raw": "{{base}}/api/servicios/{{servicioId}}/cupos?usuarioId=1",
+              "raw": "{{base}}/api/servicios/{{servicioId}}/cupos",
               "host": [
                 "{{base}}"
               ],
@@ -457,15 +539,9 @@
                 "servicios",
                 "{{servicioId}}",
                 "cupos"
-              ],
-              "query": [
-                {
-                  "key": "usuarioId",
-                  "value": "1"
-                }
               ]
             },
-            "description": "PATCH modifica un solo campo. Requiere usuarioId: solo el profesional que publico el servicio puede hacerlo, si no devuelve 403.",
+            "description": "PATCH modifica un solo campo. Solo el profesional que publico el servicio puede hacerlo (se identifica por el token): si no, devuelve 403.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"cuposDisponibles\": 7\n}"
@@ -484,7 +560,7 @@
               }
             ],
             "url": {
-              "raw": "{{base}}/api/servicios/{{servicioId}}/imagenes?usuarioId=1",
+              "raw": "{{base}}/api/servicios/{{servicioId}}/imagenes",
               "host": [
                 "{{base}}"
               ],
@@ -493,15 +569,9 @@
                 "servicios",
                 "{{servicioId}}",
                 "imagenes"
-              ],
-              "query": [
-                {
-                  "key": "usuarioId",
-                  "value": "1"
-                }
               ]
             },
-            "description": "Requiere usuarioId: solo el profesional que publico el servicio puede hacerlo, si no devuelve 403.",
+            "description": "Solo el profesional que publico el servicio puede hacerlo (se identifica por el token): si no, devuelve 403.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"url\": \"https://ejemplo.com/foto3.jpg\",\n  \"ordenVisualizacion\": 2\n}"
@@ -515,7 +585,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base}}/api/servicios/{{servicioId}}?usuarioId=1",
+              "raw": "{{base}}/api/servicios/{{servicioId}}",
               "host": [
                 "{{base}}"
               ],
@@ -523,15 +593,9 @@
                 "api",
                 "servicios",
                 "{{servicioId}}"
-              ],
-              "query": [
-                {
-                  "key": "usuarioId",
-                  "value": "1"
-                }
               ]
             },
-            "description": "204 NO CONTENT. Baja logica: la fila sobrevive para las ordenes historicas. Requiere usuarioId: solo el profesional que publico el servicio puede hacerlo, si no devuelve 403."
+            "description": "204 NO CONTENT. Baja logica: la fila sobrevive para las ordenes historicas. Solo el profesional que publico el servicio puede hacerlo (se identifica por el token): si no, devuelve 403."
           },
           "response": []
         },
@@ -567,7 +631,7 @@
               }
             ],
             "url": {
-              "raw": "{{base}}/api/servicios/{{servicioId}}?usuarioId={{usuarioId}}",
+              "raw": "{{base}}/api/servicios/{{servicioId}}",
               "host": [
                 "{{base}}"
               ],
@@ -575,19 +639,23 @@
                 "api",
                 "servicios",
                 "{{servicioId}}"
-              ],
-              "query": [
-                {
-                  "key": "usuarioId",
-                  "value": "{{usuarioId}}"
-                }
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"titulo\": \"Intento de modificacion ajena\",\n  \"descripcion\": \"Este cambio deberia ser rechazado.\",\n  \"precio\": 1.0,\n  \"cuposDisponibles\": 99,\n  \"categoriaId\": 1,\n  \"profesionalId\": 2,\n  \"zonaIds\": [\n    4\n  ]\n}"
+              "raw": "{\n  \"titulo\": \"Intento de modificacion ajena\",\n  \"descripcion\": \"Este cambio deberia ser rechazado.\",\n  \"precio\": 1.0,\n  \"cuposDisponibles\": 99,\n  \"categoriaId\": 1,\n  \"zonaIds\": [\n    4\n  ]\n}"
             },
-            "description": "403 FORBIDDEN. El usuario esta identificado pero el servicio no es suyo."
+            "description": "403 FORBIDDEN. El usuario esta identificado pero el servicio no es suyo.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOtro}}",
+                  "type": "string"
+                }
+              ]
+            }
           },
           "response": []
         },
@@ -597,7 +665,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base}}/api/servicios/{{servicioId}}?usuarioId={{usuarioId}}",
+              "raw": "{{base}}/api/servicios/{{servicioId}}",
               "host": [
                 "{{base}}"
               ],
@@ -605,15 +673,19 @@
                 "api",
                 "servicios",
                 "{{servicioId}}"
-              ],
-              "query": [
-                {
-                  "key": "usuarioId",
-                  "value": "{{usuarioId}}"
-                }
               ]
             },
-            "description": "403 FORBIDDEN."
+            "description": "403 FORBIDDEN.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOtro}}",
+                  "type": "string"
+                }
+              ]
+            }
           },
           "response": []
         }
@@ -628,19 +700,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base}}/api/carrito?usuarioId={{usuarioId}}",
+              "raw": "{{base}}/api/carrito",
               "host": [
                 "{{base}}"
               ],
               "path": [
                 "api",
                 "carrito"
-              ],
-              "query": [
-                {
-                  "key": "usuarioId",
-                  "value": "{{usuarioId}}"
-                }
               ]
             },
             "description": "Devuelve los items con el total ya calculado."
@@ -658,7 +724,7 @@
               }
             ],
             "url": {
-              "raw": "{{base}}/api/carrito/items?usuarioId={{usuarioId}}",
+              "raw": "{{base}}/api/carrito/items",
               "host": [
                 "{{base}}"
               ],
@@ -666,12 +732,6 @@
                 "api",
                 "carrito",
                 "items"
-              ],
-              "query": [
-                {
-                  "key": "usuarioId",
-                  "value": "{{usuarioId}}"
-                }
               ]
             },
             "description": "201 CREATED.",
@@ -693,7 +753,7 @@
               }
             ],
             "url": {
-              "raw": "{{base}}/api/carrito/items?usuarioId={{usuarioId}}",
+              "raw": "{{base}}/api/carrito/items",
               "host": [
                 "{{base}}"
               ],
@@ -701,12 +761,6 @@
                 "api",
                 "carrito",
                 "items"
-              ],
-              "query": [
-                {
-                  "key": "usuarioId",
-                  "value": "{{usuarioId}}"
-                }
               ]
             },
             "description": "409 CONFLICT. Es el caso que menciona la consigna.",
@@ -728,7 +782,7 @@
               }
             ],
             "url": {
-              "raw": "{{base}}/api/carrito/items?usuarioId={{usuarioId}}",
+              "raw": "{{base}}/api/carrito/items",
               "host": [
                 "{{base}}"
               ],
@@ -736,12 +790,6 @@
                 "api",
                 "carrito",
                 "items"
-              ],
-              "query": [
-                {
-                  "key": "usuarioId",
-                  "value": "{{usuarioId}}"
-                }
               ]
             },
             "description": "400 BAD REQUEST.",
@@ -763,7 +811,7 @@
               }
             ],
             "url": {
-              "raw": "{{base}}/api/carrito/items?usuarioId=1",
+              "raw": "{{base}}/api/carrito/items",
               "host": [
                 "{{base}}"
               ],
@@ -771,18 +819,22 @@
                 "api",
                 "carrito",
                 "items"
-              ],
-              "query": [
-                {
-                  "key": "usuarioId",
-                  "value": "1"
-                }
               ]
             },
             "description": "400 BAD REQUEST.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"servicioId\": 1,\n  \"cantidad\": 1\n}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "response": []
@@ -798,7 +850,7 @@
               }
             ],
             "url": {
-              "raw": "{{base}}/api/carrito/items/1?usuarioId={{usuarioId}}",
+              "raw": "{{base}}/api/carrito/items/1",
               "host": [
                 "{{base}}"
               ],
@@ -807,12 +859,6 @@
                 "carrito",
                 "items",
                 "1"
-              ],
-              "query": [
-                {
-                  "key": "usuarioId",
-                  "value": "{{usuarioId}}"
-                }
               ]
             },
             "description": "",
@@ -829,7 +875,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base}}/api/carrito/items/1?usuarioId={{usuarioId}}",
+              "raw": "{{base}}/api/carrito/items/1",
               "host": [
                 "{{base}}"
               ],
@@ -838,12 +884,6 @@
                 "carrito",
                 "items",
                 "1"
-              ],
-              "query": [
-                {
-                  "key": "usuarioId",
-                  "value": "{{usuarioId}}"
-                }
               ]
             },
             "description": ""
@@ -856,26 +896,30 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base}}/api/carrito?usuarioId={{usuarioId}}",
+              "raw": "{{base}}/api/carrito",
               "host": [
                 "{{base}}"
               ],
               "path": [
                 "api",
                 "carrito"
-              ],
-              "query": [
-                {
-                  "key": "usuarioId",
-                  "value": "{{usuarioId}}"
-                }
               ]
             },
             "description": ""
           },
           "response": []
         }
-      ]
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{tokenOtro}}",
+            "type": "string"
+          }
+        ]
+      }
     },
     {
       "name": "5. Checkout y ordenes",
@@ -886,7 +930,7 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{base}}/api/carrito/checkout?usuarioId={{usuarioId}}",
+              "raw": "{{base}}/api/carrito/checkout",
               "host": [
                 "{{base}}"
               ],
@@ -894,12 +938,6 @@
                 "api",
                 "carrito",
                 "checkout"
-              ],
-              "query": [
-                {
-                  "key": "usuarioId",
-                  "value": "{{usuarioId}}"
-                }
               ]
             },
             "description": "201 CREATED. Valida cupos, los descuenta, congela precios en la orden y vacia el carrito. Todo en una transaccion."
@@ -912,7 +950,7 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{base}}/api/carrito/checkout?usuarioId={{usuarioId}}",
+              "raw": "{{base}}/api/carrito/checkout",
               "host": [
                 "{{base}}"
               ],
@@ -920,12 +958,6 @@
                 "api",
                 "carrito",
                 "checkout"
-              ],
-              "query": [
-                {
-                  "key": "usuarioId",
-                  "value": "{{usuarioId}}"
-                }
               ]
             },
             "description": "400 BAD REQUEST."
@@ -938,19 +970,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base}}/api/ordenes?usuarioId={{usuarioId}}",
+              "raw": "{{base}}/api/ordenes",
               "host": [
                 "{{base}}"
               ],
               "path": [
                 "api",
                 "ordenes"
-              ],
-              "query": [
-                {
-                  "key": "usuarioId",
-                  "value": "{{usuarioId}}"
-                }
               ]
             },
             "description": ""
@@ -977,7 +1003,27 @@
           },
           "response": []
         }
-      ]
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{tokenOtro}}",
+            "type": "string"
+          }
+        ]
+      }
     }
-  ]
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  }
 }
