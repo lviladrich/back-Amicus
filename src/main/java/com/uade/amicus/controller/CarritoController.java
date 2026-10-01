@@ -4,6 +4,7 @@ import com.uade.amicus.dto.request.ActualizarCantidadRequest;
 import com.uade.amicus.dto.request.AgregarItemRequest;
 import com.uade.amicus.dto.response.CarritoResponse;
 import com.uade.amicus.dto.response.OrdenResponse;
+import com.uade.amicus.security.UsuarioPrincipal;
 import com.uade.amicus.service.CarritoService;
 import com.uade.amicus.service.CheckoutService;
 import jakarta.validation.Valid;
@@ -12,16 +13,18 @@ import org.springframework.http.HttpStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 /**
  * Carrito de compras y checkout.
  *
- * Sobre el parametro usuarioId: la consigna no pide tokens ni sesiones, asi que
- * el usuario se identifica con un parametro explicito. En un sistema real esto
- * saldria de un JWT y jamas de un parametro que el cliente puede cambiar a mano.
- * Es una simplificacion consciente, no un descuido.
+ * A diferencia del resto de los controllers, aca el dueno del carrito no se
+ * identifica con un usuarioId de parametro: se toma del usuario autenticado
+ * (@AuthenticationPrincipal), que Spring Security ya resolvio a partir del
+ * token JWT antes de llegar aca (ver FiltroJwt y SecurityFilterChain). Asi
+ * nadie puede operar el carrito de otro con solo cambiar un numero en la URL.
  */
 @Tag(name = "5. Carrito", description = "Carrito de compras y checkout")
 @RestController
@@ -41,43 +44,43 @@ public class CarritoController {
     @Operation(summary = "Ver el carrito",
             description = "Devuelve los items con el total ya calculado a partir de los precios actuales.")
     @GetMapping
-    public ResponseEntity<CarritoResponse> ver(@RequestParam @Positive Long usuarioId) {
-        return ResponseEntity.ok(carritoService.ver(usuarioId));
+    public ResponseEntity<CarritoResponse> ver(@AuthenticationPrincipal UsuarioPrincipal principal) {
+        return ResponseEntity.ok(carritoService.ver(principal.getUsuario().getId()));
     }
 
     /** 409 si el servicio no tiene cupos, como pide la consigna. */
     @Operation(summary = "Agregar al carrito",
             description = "cantidad son las visitas a contratar y frecuencia (UNICA, SEMANAL, QUINCENAL, MENSUAL) dice cada cuanto se repiten; si no se envia, se asume UNICA. Cada visita consume un cupo. Devuelve 409 si el servicio no tiene cupos, 400 si se pide mas cantidad que la disponible, si el usuario intenta contratar su propio servicio o si se pide una frecuencia recurrente con una sola visita. Si el servicio ya estaba, suma cantidad en vez de duplicar la linea.")
     @PostMapping("/items")
-    public ResponseEntity<CarritoResponse> agregarItem(@RequestParam @Positive Long usuarioId,
+    public ResponseEntity<CarritoResponse> agregarItem(@AuthenticationPrincipal UsuarioPrincipal principal,
                                                        @Valid @RequestBody AgregarItemRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(carritoService.agregarItem(usuarioId, request));
+                .body(carritoService.agregarItem(principal.getUsuario().getId(), request));
     }
 
     @Operation(summary = "Cambiar la cantidad de un item",
             description = "frecuencia es opcional: si no se envia, la linea conserva la recurrencia que ya tenia.")
     @PutMapping("/items/{itemId}")
     public ResponseEntity<CarritoResponse> actualizarCantidad(
-            @RequestParam @Positive Long usuarioId,
+            @AuthenticationPrincipal UsuarioPrincipal principal,
             @PathVariable @Positive Long itemId,
             @Valid @RequestBody ActualizarCantidadRequest request) {
-        return ResponseEntity.ok(carritoService.actualizarCantidad(usuarioId, itemId, request));
+        return ResponseEntity.ok(carritoService.actualizarCantidad(principal.getUsuario().getId(), itemId, request));
     }
 
     /** Elimina un item del carrito. */
     @Operation(summary = "Eliminar un item del carrito")
     @DeleteMapping("/items/{itemId}")
-    public ResponseEntity<CarritoResponse> eliminarItem(@RequestParam @Positive Long usuarioId,
+    public ResponseEntity<CarritoResponse> eliminarItem(@AuthenticationPrincipal UsuarioPrincipal principal,
                                                         @PathVariable @Positive Long itemId) {
-        return ResponseEntity.ok(carritoService.eliminarItem(usuarioId, itemId));
+        return ResponseEntity.ok(carritoService.eliminarItem(principal.getUsuario().getId(), itemId));
     }
 
     /** Vacia el carrito. */
     @Operation(summary = "Vaciar el carrito")
     @DeleteMapping
-    public ResponseEntity<CarritoResponse> vaciar(@RequestParam @Positive Long usuarioId) {
-        return ResponseEntity.ok(carritoService.vaciar(usuarioId));
+    public ResponseEntity<CarritoResponse> vaciar(@AuthenticationPrincipal UsuarioPrincipal principal) {
+        return ResponseEntity.ok(carritoService.vaciar(principal.getUsuario().getId()));
     }
 
     /**
@@ -87,7 +90,7 @@ public class CarritoController {
     @Operation(summary = "Confirmar la compra",
             description = "Valida los cupos de todos los items antes de modificar nada, los descuenta, crea la orden congelando titulo y precio de cada linea, y vacia el carrito. Todo en una sola transaccion. Sin procesamiento de pago, como aclara la consigna.")
     @PostMapping("/checkout")
-    public ResponseEntity<OrdenResponse> checkout(@RequestParam @Positive Long usuarioId) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(checkoutService.confirmar(usuarioId));
+    public ResponseEntity<OrdenResponse> checkout(@AuthenticationPrincipal UsuarioPrincipal principal) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(checkoutService.confirmar(principal.getUsuario().getId()));
     }
 }

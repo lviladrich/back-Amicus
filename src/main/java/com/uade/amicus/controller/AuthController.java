@@ -5,12 +5,14 @@ import com.uade.amicus.dto.request.LoginRequest;
 import com.uade.amicus.dto.request.RegistroRequest;
 import com.uade.amicus.dto.response.LoginResponse;
 import com.uade.amicus.dto.response.UsuarioResponse;
+import com.uade.amicus.security.UsuarioPrincipal;
 import com.uade.amicus.service.UsuarioService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -63,12 +65,12 @@ public class AuthController {
 
     @Operation(summary = "Editar el perfil",
             description = "Modifica nombre, apellido y mail. No permite cambiar username ni contrasena. "
-                    + "Solo el propio usuario puede editar su perfil: si usuarioId no coincide con el id "
-                    + "del path, devuelve 403.")
+                    + "Solo el propio usuario puede editar su perfil: si el token no es del usuario del "
+                    + "path, devuelve 403.")
     @PutMapping("/usuarios/{id}")
     public ResponseEntity<UsuarioResponse> actualizarPerfil(@PathVariable Long id,
-                                                            @RequestParam Long usuarioId,
+                                                            @AuthenticationPrincipal UsuarioPrincipal principal,
                                                             @Valid @RequestBody ActualizarPerfilRequest request) {
-        return ResponseEntity.ok(usuarioService.actualizarPerfil(id, usuarioId, request));
+        return ResponseEntity.ok(usuarioService.actualizarPerfil(id, principal.getUsuario().getId(), request));
     }
 }

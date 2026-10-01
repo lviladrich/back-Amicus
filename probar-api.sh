@@ -12,11 +12,16 @@ titulo() { printf "\n\033[1;36m%s\033[0m\n" "$1"; }
 
 # Ejecuta una peticion y compara el codigo HTTP con el esperado.
 # El sexto parametro es opcional: credenciales "mail:contrasena" para Basic Auth.
+# El septimo es opcional: un token JWT, para mandar "Authorization: Bearer <token>".
 probar() {
-    local descripcion="$1" esperado="$2" metodo="$3" ruta="$4" cuerpo="$5" credenciales="$6"
+    local descripcion="$1" esperado="$2" metodo="$3" ruta="$4" cuerpo="$5" credenciales="$6" token="$7"
     local codigo
     local auth=()
-    [ -n "$credenciales" ] && auth=(-u "$credenciales")
+    if [ -n "$credenciales" ]; then
+        auth=(-u "$credenciales")
+    elif [ -n "$token" ]; then
+        auth=(-H "Authorization: Bearer $token")
+    fi
 
     if [ -n "$cuerpo" ]; then
         codigo=$(curl -s -o /tmp/amicus_resp.json -w "%{http_code}" "${auth[@]}" \
@@ -84,32 +89,48 @@ probar "Rechazar datos invalidos"             400 POST "/auth/registro" \
 echo "     -> $(python3 -c "import json;d=json.load(open('/tmp/amicus_resp.json'));print(list(d.get('errores',{}).keys()))")"
 probar "Login correcto"                       200 POST "/auth/login" \
   "{\"email\":\"cli$SUFIJO@mail.com\",\"password\":\"secreto123\"}"
+TOKEN_CLI=$(campo token)
 probar "Rechazar password incorrecta"         401 POST "/auth/login" \
   "{\"email\":\"cli$SUFIJO@mail.com\",\"password\":\"equivocada\"}"
 
-probar "Editar el perfil propio"              200 PUT "/auth/usuarios/$CLI?usuarioId=$CLI" \
-  "{\"nombre\":\"Lucia Editada\",\"apellido\":\"Viladrich Editada\",\"email\":\"cli$SUFIJO.editado@mail.com\"}"
+probar "Login del profesional"                200 POST "/auth/login" \
+  "{\"email\":\"pro$SUFIJO@mail.com\",\"password\":\"secreto123\"}"
+TOKEN_PRO=$(campo token)
+
+probar "Editar el perfil propio"              200 PUT "/auth/usuarios/$CLI" \
+  "{\"nombre\":\"Lucia Editada\",\"apellido\":\"Viladrich Editada\",\"email\":\"cli$SUFIJO.editado@mail.com\"}" "" "$TOKEN_CLI"
 echo "     -> username no cambio: $(campo username)"
-probar "Rechazar que otro edite el perfil"    403 PUT "/auth/usuarios/$PRO?usuarioId=$CLI" \
-  "{\"nombre\":\"Hackeado\",\"apellido\":\"Hackeado\",\"email\":\"hack$SUFIJO@mail.com\"}"
-probar "Rechazar mail duplicado en la edicion" 400 PUT "/auth/usuarios/$PRO?usuarioId=$PRO" \
-  "{\"nombre\":\"Martin\",\"apellido\":\"Gomez\",\"email\":\"cli$SUFIJO.editado@mail.com\"}"
-probar "Rechazar datos invalidos en la edicion" 400 PUT "/auth/usuarios/$CLI?usuarioId=$CLI" \
-  '{"nombre":"","apellido":"Viladrich","email":"no-es-mail"}'
+
+# El token viejo de la clienta quedo con el mail anterior adentro: el filtro
+# JWT busca el usuario por ese mail en cada pedido (ver FiltroJwt), asi que
+# tras cambiar el mail hay que volver a loguearse para tener un token valido.
+probar "Login con el mail nuevo"              200 POST "/auth/login" \
+  "{\"email\":\"cli$SUFIJO.editado@mail.com\",\"password\":\"secreto123\"}"
+TOKEN_CLI=$(campo token)
+
+probar "Rechazar que otro edite el perfil"    403 PUT "/auth/usuarios/$PRO" \
+  "{\"nombre\":\"Hackeado\",\"apellido\":\"Hackeado\",\"email\":\"hack$SUFIJO@mail.com\"}" "" "$TOKEN_CLI"
+probar "Rechazar mail duplicado en la edicion" 400 PUT "/auth/usuarios/$PRO" \
+  "{\"nombre\":\"Martin\",\"apellido\":\"Gomez\",\"email\":\"cli$SUFIJO.editado@mail.com\"}" "" "$TOKEN_PRO"
+probar "Rechazar datos invalidos en la edicion" 400 PUT "/auth/usuarios/$CLI" \
+  '{"nombre":"","apellido":"Viladrich","email":"no-es-mail"}' "" "$TOKEN_CLI"
 
 # ------------------------------------------------------------
 titulo "3. PUBLICAR SERVICIOS"
+probar "Sin token no se puede publicar"       401 POST "/servicios" \
+  "{\"titulo\":\"Intento\",\"descripcion\":\"Sin loguearse\",\"precio\":100,\"cuposDisponibles\":1,\"categoriaId\":1}"
+
 probar "Publicar servicio con 3 cupos"        201 POST "/servicios" \
-  "{\"titulo\":\"Instalacion de ventilador $SUFIJO\",\"descripcion\":\"Incluye soporte, cableado y prueba de funcionamiento.\",\"precio\":25000.00,\"cuposDisponibles\":3,\"categoriaId\":1,\"profesionalId\":$PRO,\"zonaIds\":[4,2],\"imagenes\":[\"https://ejemplo.com/a.jpg\",\"https://ejemplo.com/b.jpg\"]}"
+  "{\"titulo\":\"Instalacion de ventilador $SUFIJO\",\"descripcion\":\"Incluye soporte, cableado y prueba de funcionamiento.\",\"precio\":25000.00,\"cuposDisponibles\":3,\"categoriaId\":1,\"zonaIds\":[4,2],\"imagenes\":[\"https://ejemplo.com/a.jpg\",\"https://ejemplo.com/b.jpg\"]}" "" "$TOKEN_PRO"
 SERV=$(campo id)
 echo "     -> id del servicio: $SERV"
 
 probar "Publicar servicio SIN cupos"          201 POST "/servicios" \
-  "{\"titulo\":\"Cambio de tablero $SUFIJO\",\"descripcion\":\"Reemplazo completo con termicas.\",\"precio\":80000.00,\"cuposDisponibles\":0,\"categoriaId\":1,\"profesionalId\":$PRO,\"zonaIds\":[4]}"
+  "{\"titulo\":\"Cambio de tablero $SUFIJO\",\"descripcion\":\"Reemplazo completo con termicas.\",\"precio\":80000.00,\"cuposDisponibles\":0,\"categoriaId\":1,\"zonaIds\":[4]}" "" "$TOKEN_PRO"
 SIN_CUPOS=$(campo id)
 
 probar "Rechazar precio en cero"              400 POST "/servicios" \
-  "{\"titulo\":\"Gratis\",\"descripcion\":\"Prueba\",\"precio\":0,\"cuposDisponibles\":1,\"categoriaId\":1,\"profesionalId\":$PRO}"
+  "{\"titulo\":\"Gratis\",\"descripcion\":\"Prueba\",\"precio\":0,\"cuposDisponibles\":1,\"categoriaId\":1}" "" "$TOKEN_PRO"
 
 # ------------------------------------------------------------
 titulo "4. CATALOGO"
@@ -126,28 +147,30 @@ probar "Servicio inexistente da 404"          404 GET "/servicios/999999"
 
 # ------------------------------------------------------------
 titulo "5. REGLAS DEL CARRITO"
-probar "Rechazar contratar lo propio"         400 POST "/carrito/items?usuarioId=$PRO" \
-  "{\"servicioId\":$SERV,\"cantidad\":1}"
+probar "Sin token no se puede usar el carrito" 401 GET "/carrito"
+
+probar "Rechazar contratar lo propio"         400 POST "/carrito/items" \
+  "{\"servicioId\":$SERV,\"cantidad\":1}" "" "$TOKEN_PRO"
 echo "     -> $(campo mensaje)"
 
-probar "Rechazar servicio SIN CUPOS"          409 POST "/carrito/items?usuarioId=$CLI" \
-  "{\"servicioId\":$SIN_CUPOS,\"cantidad\":1}"
+probar "Rechazar servicio SIN CUPOS"          409 POST "/carrito/items" \
+  "{\"servicioId\":$SIN_CUPOS,\"cantidad\":1}" "" "$TOKEN_CLI"
 echo "     -> $(campo mensaje)"
 
-probar "Rechazar mas cantidad que cupos"      400 POST "/carrito/items?usuarioId=$CLI" \
-  "{\"servicioId\":$SERV,\"cantidad\":99}"
+probar "Rechazar mas cantidad que cupos"      400 POST "/carrito/items" \
+  "{\"servicioId\":$SERV,\"cantidad\":99}" "" "$TOKEN_CLI"
 echo "     -> $(campo mensaje)"
 
-probar "Rechazar cantidad cero"               400 POST "/carrito/items?usuarioId=$CLI" \
-  "{\"servicioId\":$SERV,\"cantidad\":0}"
+probar "Rechazar cantidad cero"               400 POST "/carrito/items" \
+  "{\"servicioId\":$SERV,\"cantidad\":0}" "" "$TOKEN_CLI"
 
 # ------------------------------------------------------------
 titulo "6. CARRITO"
-probar "Agregar 2 unidades"                   201 POST "/carrito/items?usuarioId=$CLI" \
-  "{\"servicioId\":$SERV,\"cantidad\":2}"
-probar "Agregar 1 mas del mismo servicio"     201 POST "/carrito/items?usuarioId=$CLI" \
-  "{\"servicioId\":$SERV,\"cantidad\":1}"
-probar "Ver el carrito"                       200 GET "/carrito?usuarioId=$CLI"
+probar "Agregar 2 unidades"                   201 POST "/carrito/items" \
+  "{\"servicioId\":$SERV,\"cantidad\":2}" "" "$TOKEN_CLI"
+probar "Agregar 1 mas del mismo servicio"     201 POST "/carrito/items" \
+  "{\"servicioId\":$SERV,\"cantidad\":1}" "" "$TOKEN_CLI"
+probar "Ver el carrito"                       200 GET "/carrito" "" "" "$TOKEN_CLI"
 python3 -c "
 import json
 d = json.load(open('/tmp/amicus_resp.json'))
@@ -159,7 +182,7 @@ print('     -> una sola linea con cantidad 3: no duplico la fila')
 
 # ------------------------------------------------------------
 titulo "7. CHECKOUT"
-probar "Confirmar la compra"                  201 POST "/carrito/checkout?usuarioId=$CLI"
+probar "Confirmar la compra"                  201 POST "/carrito/checkout" "" "" "$TOKEN_CLI"
 ORDEN=$(campo id)
 python3 -c "
 import json
@@ -170,17 +193,17 @@ for i in d['items']:
 "
 probar "El servicio quedo sin cupos"          200 GET "/servicios/$SERV"
 echo "     -> cupos: $(campo cuposDisponibles), disponible: $(campo disponible)"
-probar "El carrito quedo vacio"               200 GET "/carrito?usuarioId=$CLI"
+probar "El carrito quedo vacio"               200 GET "/carrito" "" "" "$TOKEN_CLI"
 echo "     -> items: $(campo cantidadDeItems), total: $(campo total)"
-probar "Rechazar checkout con carrito vacio"  400 POST "/carrito/checkout?usuarioId=$CLI"
+probar "Rechazar checkout con carrito vacio"  400 POST "/carrito/checkout" "" "" "$TOKEN_CLI"
 
 # ------------------------------------------------------------
 titulo "8. EL PRECIO CONGELADO"
 echo "  El profesional sube el precio de 25.000 a 40.000:"
-probar "Modificar la publicacion"             200 PUT "/servicios/$SERV?usuarioId=$PRO" \
-  "{\"titulo\":\"Instalacion de ventilador $SUFIJO\",\"descripcion\":\"Descripcion actualizada.\",\"precio\":40000.00,\"cuposDisponibles\":5,\"categoriaId\":1,\"profesionalId\":$PRO,\"zonaIds\":[4]}"
+probar "Modificar la publicacion"             200 PUT "/servicios/$SERV" \
+  "{\"titulo\":\"Instalacion de ventilador $SUFIJO\",\"descripcion\":\"Descripcion actualizada.\",\"precio\":40000.00,\"cuposDisponibles\":5,\"categoriaId\":1,\"zonaIds\":[4]}" "" "$TOKEN_PRO"
 echo "     -> precio actual del servicio: \$$(campo precio)"
-probar "Consultar la orden ya pagada"         200 GET "/ordenes/$ORDEN"
+probar "Consultar la orden ya pagada"         200 GET "/ordenes/$ORDEN" "" "" "$TOKEN_CLI"
 python3 -c "
 import json
 d = json.load(open('/tmp/amicus_resp.json'))
@@ -191,34 +214,34 @@ print('     -> el comprobante NO se reescribio')
 
 # ------------------------------------------------------------
 titulo "9. VALIDACION DE PROPIETARIO"
-probar "Rechazar que otro modifique"          403 PUT "/servicios/$SERV?usuarioId=$CLI" \
-  "{\"titulo\":\"Secuestrado\",\"descripcion\":\"Intento de modificacion ajena.\",\"precio\":1.00,\"cuposDisponibles\":99,\"categoriaId\":1,\"profesionalId\":$CLI,\"zonaIds\":[4]}"
+probar "Rechazar que otro modifique"          403 PUT "/servicios/$SERV" \
+  "{\"titulo\":\"Secuestrado\",\"descripcion\":\"Intento de modificacion ajena.\",\"precio\":1.00,\"cuposDisponibles\":99,\"categoriaId\":1,\"zonaIds\":[4]}" "" "$TOKEN_CLI"
 echo "     -> $(campo mensaje)"
-probar "Rechazar que otro cambie los cupos"   403 PATCH "/servicios/$SERV/cupos?usuarioId=$CLI" '{"cuposDisponibles":99}'
-probar "Rechazar que otro agregue fotos"      403 POST "/servicios/$SERV/imagenes?usuarioId=$CLI" '{"url":"https://ejemplo.com/ajena.jpg"}'
-probar "Rechazar que otro de de baja"         403 DELETE "/servicios/$SERV?usuarioId=$CLI"
+probar "Rechazar que otro cambie los cupos"   403 PATCH "/servicios/$SERV/cupos" '{"cuposDisponibles":99}' "" "$TOKEN_CLI"
+probar "Rechazar que otro agregue fotos"      403 POST "/servicios/$SERV/imagenes" '{"url":"https://ejemplo.com/ajena.jpg"}' "" "$TOKEN_CLI"
+probar "Rechazar que otro de de baja"         403 DELETE "/servicios/$SERV" "" "" "$TOKEN_CLI"
 echo "     -> $(campo mensaje)"
-probar "El dueno SI puede ajustar cupos"      200 PATCH "/servicios/$SERV/cupos?usuarioId=$PRO" '{"cuposDisponibles":4}'
+probar "El dueno SI puede ajustar cupos"      200 PATCH "/servicios/$SERV/cupos" '{"cuposDisponibles":4}' "" "$TOKEN_PRO"
 
 titulo "10. BAJA LOGICA"
-probar "Ajustar cupos con PATCH"              200 PATCH "/servicios/$SIN_CUPOS/cupos?usuarioId=$PRO" '{"cuposDisponibles":7}'
-probar "Dar de baja el servicio"              204 DELETE "/servicios/$SERV?usuarioId=$PRO"
-probar "Rechazar la segunda baja"             400 DELETE "/servicios/$SERV?usuarioId=$PRO"
-probar "La orden sigue existiendo"            200 GET "/ordenes/$ORDEN"
+probar "Ajustar cupos con PATCH"              200 PATCH "/servicios/$SIN_CUPOS/cupos" '{"cuposDisponibles":7}' "" "$TOKEN_PRO"
+probar "Dar de baja el servicio"              204 DELETE "/servicios/$SERV" "" "" "$TOKEN_PRO"
+probar "Rechazar la segunda baja"             400 DELETE "/servicios/$SERV" "" "" "$TOKEN_PRO"
+probar "La orden sigue existiendo"            200 GET "/ordenes/$ORDEN" "" "" "$TOKEN_CLI"
 echo "     -> total de la orden: \$$(campo total)"
-probar "Historial de compras"                 200 GET "/ordenes?usuarioId=$CLI"
-probar "Historial paginado (page=0, size=1)"  200 GET "/ordenes?usuarioId=$CLI&page=0&size=1"
+probar "Historial de compras"                 200 GET "/ordenes" "" "" "$TOKEN_CLI"
+probar "Historial paginado (page=0, size=1)"  200 GET "/ordenes?page=0&size=1" "" "" "$TOKEN_CLI"
 echo "     -> pagina $(campo pagina) de $(campo totalPaginas), $(campo totalElementos) orden(es) en total"
 
 # ------------------------------------------------------------
 titulo "11. RECURRENCIA"
 echo "  El servicio $SIN_CUPOS quedo con 7 cupos. Se contrata semanalmente:"
-probar "Rechazar recurrencia de 1 sola visita"  400 POST "/carrito/items?usuarioId=$CLI" \
-  "{\"servicioId\":$SIN_CUPOS,\"cantidad\":1,\"frecuencia\":\"SEMANAL\"}"
+probar "Rechazar recurrencia de 1 sola visita"  400 POST "/carrito/items" \
+  "{\"servicioId\":$SIN_CUPOS,\"cantidad\":1,\"frecuencia\":\"SEMANAL\"}" "" "$TOKEN_CLI"
 echo "     -> $(campo mensaje)"
 
-probar "Contratar 2 visitas SEMANAL"            201 POST "/carrito/items?usuarioId=$CLI" \
-  "{\"servicioId\":$SIN_CUPOS,\"cantidad\":2,\"frecuencia\":\"SEMANAL\"}"
+probar "Contratar 2 visitas SEMANAL"            201 POST "/carrito/items" \
+  "{\"servicioId\":$SIN_CUPOS,\"cantidad\":2,\"frecuencia\":\"SEMANAL\"}" "" "$TOKEN_CLI"
 python3 -c "
 import json
 d = json.load(open('/tmp/amicus_resp.json'))
@@ -228,13 +251,13 @@ print('     -> la frecuencia no cambia el precio, solo cuando se presta')
 "
 # El id del item se lee del GET y no de la respuesta del POST: al agregar una
 # linea nueva, el POST la devuelve con id null porque todavia no se hizo flush.
-probar "Ver el carrito para tomar el id"        200 GET "/carrito?usuarioId=$CLI"
+probar "Ver el carrito para tomar el id"        200 GET "/carrito" "" "" "$TOKEN_CLI"
 ITEM_REC=$(python3 -c "import json;print(json.load(open('/tmp/amicus_resp.json'))['items'][0]['id'])")
-probar "Cambiar la frecuencia a MENSUAL"        200 PUT "/carrito/items/$ITEM_REC?usuarioId=$CLI" \
-  '{"cantidad":2,"frecuencia":"MENSUAL"}'
+probar "Cambiar la frecuencia a MENSUAL"        200 PUT "/carrito/items/$ITEM_REC" \
+  '{"cantidad":2,"frecuencia":"MENSUAL"}' "" "$TOKEN_CLI"
 echo "     -> frecuencia: $(python3 -c "import json;print(json.load(open('/tmp/amicus_resp.json'))['items'][0]['frecuencia'])")"
 
-probar "Confirmar la contratacion recurrente"   201 POST "/carrito/checkout?usuarioId=$CLI"
+probar "Confirmar la contratacion recurrente"   201 POST "/carrito/checkout" "" "" "$TOKEN_CLI"
 ORDEN_REC=$(campo id)
 python3 -c "
 import json
@@ -250,25 +273,28 @@ titulo "12. RESENIAS"
 probar "Registrar a un vecino que no contrato"  201 POST "/auth/registro" \
   "{\"username\":\"vec$SUFIJO\",\"email\":\"vec$SUFIJO@mail.com\",\"password\":\"secreto123\",\"nombre\":\"Vecino\",\"apellido\":\"Curioso\"}"
 VEC=$(campo id)
+probar "Login del vecino"                       200 POST "/auth/login" \
+  "{\"email\":\"vec$SUFIJO@mail.com\",\"password\":\"secreto123\"}"
+TOKEN_VEC=$(campo token)
 
-probar "Rechazar resenia del propio dueno"      400 POST "/servicios/$SERV/resenas?usuarioId=$PRO" \
-  '{"puntaje":5,"comentario":"Me califico a mi mismo"}'
+probar "Rechazar resenia del propio dueno"      400 POST "/servicios/$SERV/resenas" \
+  '{"puntaje":5,"comentario":"Me califico a mi mismo"}' "" "$TOKEN_PRO"
 echo "     -> $(campo mensaje)"
 
-probar "Rechazar a quien no lo contrato"        403 POST "/servicios/$SERV/resenas?usuarioId=$VEC" \
-  '{"puntaje":1,"comentario":"Nunca lo use pero opino"}'
+probar "Rechazar a quien no lo contrato"        403 POST "/servicios/$SERV/resenas" \
+  '{"puntaje":1,"comentario":"Nunca lo use pero opino"}' "" "$TOKEN_VEC"
 echo "     -> $(campo mensaje)"
 
-probar "Rechazar puntaje fuera de 1 a 5"        400 POST "/servicios/$SERV/resenas?usuarioId=$CLI" \
-  '{"puntaje":9,"comentario":"Once de diez"}'
+probar "Rechazar puntaje fuera de 1 a 5"        400 POST "/servicios/$SERV/resenas" \
+  '{"puntaje":9,"comentario":"Once de diez"}' "" "$TOKEN_CLI"
 
-probar "La clienta que SI contrato resenia"     201 POST "/servicios/$SERV/resenas?usuarioId=$CLI" \
-  '{"puntaje":4,"comentario":"Llego puntual y dejo todo limpio."}'
+probar "La clienta que SI contrato resenia"     201 POST "/servicios/$SERV/resenas" \
+  '{"puntaje":4,"comentario":"Llego puntual y dejo todo limpio."}' "" "$TOKEN_CLI"
 RESENIA=$(campo id)
 echo "     -> puntaje $(campo puntaje) de $(campo autor)"
 
-probar "Rechazar la segunda resenia del mismo"  409 POST "/servicios/$SERV/resenas?usuarioId=$CLI" \
-  '{"puntaje":1,"comentario":"Me arrepenti"}'
+probar "Rechazar la segunda resenia del mismo"  409 POST "/servicios/$SERV/resenas" \
+  '{"puntaje":1,"comentario":"Me arrepenti"}' "" "$TOKEN_CLI"
 echo "     -> $(campo mensaje)"
 
 probar "Listar las resenias del servicio"       200 GET "/servicios/$SERV/resenas"
@@ -277,8 +303,8 @@ echo "     -> pagina $(campo pagina) de $(campo totalPaginas), $(campo totalElem
 probar "El detalle muestra la calificacion"     200 GET "/servicios/$SERV"
 echo "     -> promedio: $(campo promedioPuntaje) sobre $(campo cantidadResenas) resenia(s)"
 
-probar "Rechazar que otro borre la resenia"     403 DELETE "/resenas/$RESENIA?usuarioId=$VEC"
-probar "El autor SI puede borrar la suya"       204 DELETE "/resenas/$RESENIA?usuarioId=$CLI"
+probar "Rechazar que otro borre la resenia"     403 DELETE "/resenas/$RESENIA" "" "" "$TOKEN_VEC"
+probar "El autor SI puede borrar la suya"       204 DELETE "/resenas/$RESENIA" "" "" "$TOKEN_CLI"
 probar "Sin resenias el promedio es nulo"       200 GET "/servicios/$SERV"
 python3 -c "
 import json
@@ -289,24 +315,24 @@ print('     -> null y no 0: un servicio sin resenias no vale cero estrellas')
 
 # ------------------------------------------------------------
 titulo "13. CANCELAR UNA ORDEN"
-probar "Rechazar que otro cancele"              403 PATCH "/ordenes/$ORDEN_REC/cancelar?usuarioId=$VEC"
+probar "Rechazar que otro cancele"              403 PATCH "/ordenes/$ORDEN_REC/cancelar" "" "" "$TOKEN_VEC"
 echo "     -> $(campo mensaje)"
-probar "Cancelar una orden inexistente da 404"  404 PATCH "/ordenes/999999/cancelar?usuarioId=$CLI"
+probar "Cancelar una orden inexistente da 404"  404 PATCH "/ordenes/999999/cancelar" "" "" "$TOKEN_CLI"
 
-probar "El dueno cancela su orden"              200 PATCH "/ordenes/$ORDEN_REC/cancelar?usuarioId=$CLI"
+probar "El dueno cancela su orden"              200 PATCH "/ordenes/$ORDEN_REC/cancelar" "" "" "$TOKEN_CLI"
 echo "     -> estado: $(campo estado), total intacto: \$$(campo total)"
 probar "Los cupos volvieron a 7"                200 GET "/servicios/$SIN_CUPOS"
 echo "     -> cupos: $(campo cuposDisponibles)"
-probar "Rechazar la segunda cancelacion"        400 PATCH "/ordenes/$ORDEN_REC/cancelar?usuarioId=$CLI"
+probar "Rechazar la segunda cancelacion"        400 PATCH "/ordenes/$ORDEN_REC/cancelar" "" "" "$TOKEN_CLI"
 echo "     -> $(campo mensaje)"
-probar "La orden cancelada sigue en el historial" 200 GET "/ordenes/$ORDEN_REC"
+probar "La orden cancelada sigue en el historial" 200 GET "/ordenes/$ORDEN_REC" "" "" "$TOKEN_CLI"
 echo "     -> un comprobante cancelado sigue siendo un comprobante"
 
 # ------------------------------------------------------------
 titulo "14. PEDIDOS MAL FORMADOS"
 probar "Metodo no permitido da 405"             405 DELETE "/auth/usuarios/1"
 probar "JSON malformado da 400"                 400 POST "/auth/login" '{esto no es json}'
-probar "Falta parametro obligatorio da 400"     400 GET "/carrito"
+probar "Un id invalido en la ruta da 400"       400 GET "/servicios/-1"
 probar "Tipo invalido en la ruta da 400"        400 GET "/servicios/abc"
 probar "Ruta inexistente da 404"                404 GET "/no-existe"
 

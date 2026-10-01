@@ -7,6 +7,7 @@ import com.uade.amicus.dto.request.ServicioRequest;
 import com.uade.amicus.dto.response.PaginaResponse;
 import com.uade.amicus.dto.response.ServicioDetalleResponse;
 import com.uade.amicus.dto.response.ServicioResumenResponse;
+import com.uade.amicus.security.UsuarioPrincipal;
 import com.uade.amicus.service.ServicioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,6 +18,7 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -101,10 +103,12 @@ public class ServicioController {
     }
 
     @Operation(summary = "Publicar un servicio",
-            description = "Alta de una publicacion con su categoria, sus zonas de cobertura y una o mas fotos. El campo cuposDisponibles hace las veces de stock.")
+            description = "Alta de una publicacion con su categoria, sus zonas de cobertura y una o mas fotos. El campo cuposDisponibles hace las veces de stock. El profesional que publica es el usuario autenticado.")
     @PostMapping
-    public ResponseEntity<ServicioDetalleResponse> crear(@Valid @RequestBody ServicioRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(servicioService.crear(request));
+    public ResponseEntity<ServicioDetalleResponse> crear(@AuthenticationPrincipal UsuarioPrincipal principal,
+                                                          @Valid @RequestBody ServicioRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(servicioService.crear(request, principal.getUsuario().getId()));
     }
 
     /** Modifica los campos editables de una publicacion. */
@@ -120,11 +124,9 @@ public class ServicioController {
             @PathVariable
             @Positive(message = "El id del servicio debe ser mayor que 0")
             Long id,
-            @RequestParam
-            @Positive(message = "El id de usuario debe ser mayor que 0")
-            Long usuarioId,
+            @AuthenticationPrincipal UsuarioPrincipal principal,
             @Valid @RequestBody ActualizarServicioRequest request) {
-        return ResponseEntity.ok(servicioService.actualizar(id, usuarioId, request));
+        return ResponseEntity.ok(servicioService.actualizar(id, principal.getUsuario().getId(), request));
     }
 
     /**
@@ -138,11 +140,9 @@ public class ServicioController {
             @PathVariable
             @Positive(message = "El id del servicio debe ser mayor que 0")
             Long id,
-            @RequestParam
-            @Positive(message = "El id de usuario debe ser mayor que 0")
-            Long usuarioId,
+            @AuthenticationPrincipal UsuarioPrincipal principal,
             @Valid @RequestBody ActualizarCuposRequest request) {
-        return ResponseEntity.ok(servicioService.actualizarCupos(id, usuarioId, request));
+        return ResponseEntity.ok(servicioService.actualizarCupos(id, principal.getUsuario().getId(), request));
     }
 
     /** 204 NO CONTENT: se hizo, no hay nada que devolver. */
@@ -153,10 +153,8 @@ public class ServicioController {
             @PathVariable
             @Positive(message = "El id del servicio debe ser mayor que 0")
             Long id,
-            @RequestParam
-            @Positive(message = "El id de usuario debe ser mayor que 0")
-            Long usuarioId) {
-        servicioService.eliminar(id, usuarioId);
+            @AuthenticationPrincipal UsuarioPrincipal principal) {
+        servicioService.eliminar(id, principal.getUsuario().getId());
         return ResponseEntity.noContent().build();
     }
 
@@ -167,12 +165,10 @@ public class ServicioController {
             @PathVariable
             @Positive(message = "El id del servicio debe ser mayor que 0")
             Long id,
-            @RequestParam
-            @Positive(message = "El id de usuario debe ser mayor que 0")
-            Long usuarioId,
+            @AuthenticationPrincipal UsuarioPrincipal principal,
             @Valid @RequestBody ImagenRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(servicioService.agregarImagen(id, usuarioId, request));
+                .body(servicioService.agregarImagen(id, principal.getUsuario().getId(), request));
     }
 
     @Operation(summary = "Quitar una foto")
@@ -181,13 +177,11 @@ public class ServicioController {
             @PathVariable
             @Positive(message = "El id del servicio debe ser mayor que 0")
             Long id,
-            @RequestParam
-            @Positive(message = "El id de usuario debe ser mayor que 0")
-            Long usuarioId,
+            @AuthenticationPrincipal UsuarioPrincipal principal,
             @PathVariable
             @Positive(message = "El id de la imagen debe ser mayor que 0")
             Long imagenId) {
-        servicioService.eliminarImagen(id, usuarioId, imagenId);
+        servicioService.eliminarImagen(id, principal.getUsuario().getId(), imagenId);
         return ResponseEntity.noContent().build();
     }
 }

@@ -1,8 +1,11 @@
 package com.uade.amicus.config;
 
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -40,11 +43,20 @@ public class ConfiguracionSwagger {
                                 Trabajo Practico Obligatorio de Aplicaciones Interactivas, UADE, \
                                 segundo cuatrimestre 2026.
 
-                                Los endpoints de carrito y ordenes requieren el parametro \
-                                usuarioId. En un sistema real ese dato saldria de un token JWT.""")
+                                La mayoria de los endpoints que modifican datos propios (carrito, \
+                                ordenes, publicar/editar servicios, reseñas, editar perfil) requieren \
+                                estar logueado. Hace login en /api/auth/login, copia el token de la \
+                                respuesta y apretá el boton "Authorize" de arriba a la derecha para \
+                                usarlo en el resto de los pedidos.""")
                         .contact(new Contact().name("Equipo Amicus")))
                 .servers(List.of(new Server()
                         .url("http://localhost:8080")
-                        .description("Entorno local")));
+                        .description("Entorno local")))
+                .components(new Components().addSecuritySchemes("bearerAuth",
+                        new SecurityScheme()
+                                .type(SecurityScheme.Type.HTTP)
+                                .scheme("bearer")
+                                .bearerFormat("JWT")))
+                .addSecurityItem(new SecurityRequirement().addList("bearerAuth"));
     }
 }

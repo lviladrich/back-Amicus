@@ -3,6 +3,7 @@ package com.uade.amicus.controller;
 import com.uade.amicus.dto.request.ResenaRequest;
 import com.uade.amicus.dto.response.PaginaResponse;
 import com.uade.amicus.dto.response.ResenaResponse;
+import com.uade.amicus.security.UsuarioPrincipal;
 import com.uade.amicus.service.ResenaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,6 +13,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -58,12 +60,10 @@ public class ResenaController {
             @PathVariable
             @Positive(message = "El id del servicio debe ser mayor que 0")
             Long servicioId,
-            @RequestParam
-            @Positive(message = "El id de usuario debe ser mayor que 0")
-            Long usuarioId,
+            @AuthenticationPrincipal UsuarioPrincipal principal,
             @Valid @RequestBody ResenaRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(resenaService.crear(servicioId, usuarioId, request));
+                .body(resenaService.crear(servicioId, principal.getUsuario().getId(), request));
     }
 
     @Operation(summary = "Borrar una reseña",
@@ -73,10 +73,8 @@ public class ResenaController {
             @PathVariable
             @Positive(message = "El id de la reseña debe ser mayor que 0")
             Long id,
-            @RequestParam
-            @Positive(message = "El id de usuario debe ser mayor que 0")
-            Long usuarioId) {
-        resenaService.eliminar(id, usuarioId);
+            @AuthenticationPrincipal UsuarioPrincipal principal) {
+        resenaService.eliminar(id, principal.getUsuario().getId());
         return ResponseEntity.noContent().build();
     }
 }

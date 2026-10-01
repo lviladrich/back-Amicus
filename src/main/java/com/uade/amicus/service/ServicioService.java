@@ -104,16 +104,18 @@ public class ServicioService {
      * Alta de publicacion.
      *
      * La consigna pide adjuntar una o mas fotos, la descripcion y la categoria.
+     * profesionalId llega aparte del DTO: es el usuario autenticado que hace el
+     * pedido, no un dato que el cliente pueda elegir (ver ServicioController).
      */
     @Transactional
-    public ServicioDetalleResponse crear(ServicioRequest request) {
+    public ServicioDetalleResponse crear(ServicioRequest request, Long profesionalId) {
         Servicio servicio = Servicio.builder()
                 .titulo(request.titulo())
                 .descripcion(request.descripcion())
                 .precio(request.precio())
                 .cuposDisponibles(request.cuposDisponibles())
                 .categoria(categoriaService.obtenerEntidad(request.categoriaId()))
-                .profesional(usuarioService.obtenerEntidad(request.profesionalId()))
+                .profesional(usuarioService.obtenerEntidad(profesionalId))
                 .zonas(zonaService.obtenerPorIds(request.zonaIds()))
                 .build();
 

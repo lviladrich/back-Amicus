@@ -186,9 +186,9 @@ class AuthControllerTest {
     @Test
     @DisplayName("Un parametro que viola @Positive devuelve 400 y no 500")
     void parametroInvalidoDevuelve400() throws Exception {
-        mockMvc.perform(get("/api/carrito").param("usuarioId", "-1"))
+        mockMvc.perform(get("/api/servicios/{id}", -1))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.estado").value(400))
-                .andExpect(jsonPath("$.errores.usuarioId").exists());
+                .andExpect(jsonPath("$.errores.id").exists());
     }
 }
