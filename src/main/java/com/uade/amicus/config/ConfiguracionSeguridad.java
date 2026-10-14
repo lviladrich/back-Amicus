@@ -5,6 +5,7 @@ import com.uade.amicus.security.PuenteDeErroresDeSeguridad;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -97,6 +98,9 @@ public class ConfiguracionSeguridad {
      *   su propio entry point para las credenciales incorrectas, distinto del
      *   que se usa cuando directamente no hay credenciales.
      *
+     * - cors: aplica las reglas de ConfiguracionCors, para que el preflight
+     *   de los pedidos con token no termine en 401.
+     *
      * - cabeceras: defensa en profundidad contra XSS. Una API que devuelve
      *   JSON no es por si misma un vector (Jackson escapa todo lo que
      *   serializa, asi que un titulo con <script> vuelve como texto y no como
@@ -109,6 +113,7 @@ public class ConfiguracionSeguridad {
                                                    FiltroJwt filtroJwt) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults())
                 .headers(ConfiguracionSeguridad::cabeceras)
                 .sessionManagement(sesion -> sesion.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
