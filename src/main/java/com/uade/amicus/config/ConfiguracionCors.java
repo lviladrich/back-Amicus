@@ -22,7 +22,7 @@ public class ConfiguracionCors implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(@NonNull CorsRegistry registro) {
         registro.addMapping("/api/**")
-                .allowedOrigins("http://localhost:3000", "http://localhost:5173")
+                .allowedOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost:5174")
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE")
                 .allowedHeaders("*");
     }
