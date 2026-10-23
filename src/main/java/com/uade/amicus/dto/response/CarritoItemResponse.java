@@ -13,7 +13,9 @@ public record CarritoItemResponse(
         String frecuencia,
         BigDecimal subtotal,
         Integer cuposDisponibles,
-        boolean disponible
+        boolean disponible,
+        String profesional,
+        String categoria
 ) {
     public static CarritoItemResponse desde(CarritoItem item) {
         return new CarritoItemResponse(
@@ -25,7 +27,10 @@ public record CarritoItemResponse(
                 item.getFrecuencia().name(),
                 item.calcularSubtotal(),
                 item.getServicio().getCuposDisponibles(),
-                item.getServicio().tieneCuposPara(item.getCantidad())
+                item.getServicio().tieneCuposPara(item.getCantidad()),
+                item.getServicio().getProfesional().getNombre() + " "
+                        + item.getServicio().getProfesional().getApellido(),
+                item.getServicio().getCategoria().getNombre()
         );
     }
 }
