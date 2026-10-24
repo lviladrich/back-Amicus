@@ -3,17 +3,24 @@ package com.uade.amicus.config;
 import com.uade.amicus.model.Carrito;
 import com.uade.amicus.model.Categoria;
 import com.uade.amicus.model.Rol;
+import com.uade.amicus.model.Servicio;
 import com.uade.amicus.model.Usuario;
 import com.uade.amicus.model.Zona;
 import com.uade.amicus.repository.CarritoRepository;
 import com.uade.amicus.repository.CategoriaRepository;
+import com.uade.amicus.repository.ServicioRepository;
 import com.uade.amicus.repository.UsuarioRepository;
 import com.uade.amicus.repository.ZonaRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Carga las categorias, las zonas y el usuario administrador al arrancar.
@@ -36,17 +43,20 @@ public class CargaInicialDeDatos implements CommandLineRunner {
     private final ZonaRepository zonaRepository;
     private final UsuarioRepository usuarioRepository;
     private final CarritoRepository carritoRepository;
+    private final ServicioRepository servicioRepository;
     private final PasswordEncoder passwordEncoder;
 
     public CargaInicialDeDatos(CategoriaRepository categoriaRepository,
                                ZonaRepository zonaRepository,
                                UsuarioRepository usuarioRepository,
                                CarritoRepository carritoRepository,
+                               ServicioRepository servicioRepository,
                                PasswordEncoder passwordEncoder) {
         this.categoriaRepository = categoriaRepository;
         this.zonaRepository = zonaRepository;
         this.usuarioRepository = usuarioRepository;
         this.carritoRepository = carritoRepository;
+        this.servicioRepository = servicioRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -55,6 +65,98 @@ public class CargaInicialDeDatos implements CommandLineRunner {
         cargarCategorias();
         cargarZonas();
         cargarAdministrador();
+        cargarServiciosDeEjemplo();
+    }
+
+    /**
+     * Sin servicios la pantalla de inicio arranca vacia, asi que se siembran
+     * cuatro profesionales de ejemplo con sus servicios. Son usuarios comunes
+     * (rol USUARIO) con contrasena "amicus123", y sirven tambien para probar
+     * la compra con otra cuenta, porque nadie puede comprar su propio servicio.
+     *
+     * La guarda mira si ya existe la primera profesional, igual que con el
+     * admin, para no duplicar nada en cada arranque.
+     */
+    private void cargarServiciosDeEjemplo() {
+        if (usuarioRepository.existsByEmail("marta.gomez@amicus.com")) {
+            return;
+        }
+
+        Map<String, Zona> zonas = zonaRepository.findAll().stream()
+                .collect(Collectors.toMap(Zona::getNombre, Function.identity()));
+
+        Usuario marta = crearProfesional("marta.gomez", "Marta", "Gomez");
+        Usuario diego = crearProfesional("diego.ferreyra", "Diego", "Ferreyra");
+        Usuario carla = crearProfesional("carla.benitez", "Carla", "Benitez");
+        Usuario ramon = crearProfesional("ramon.ibarra", "Ramon", "Ibarra");
+
+        servicioRepository.saveAll(List.of(
+                crearServicio(marta, "Plomeria", "Destapación de cañerías",
+                        "Destapo piletas, inodoros y cañerías con máquina. Incluye revisión de pérdidas.",
+                        28000, 6, zonas, "Almagro", "Caballito", "Villa Crespo"),
+                crearServicio(marta, "Plomeria", "Cambio de grifería",
+                        "Cambio canillas, flexibles y llaves de paso en cocina o baño. La grifería la ponés vos.",
+                        22000, 8, zonas, "Almagro", "Caballito", "Flores"),
+                crearServicio(marta, "Gas", "Instalación de cocina o calefón",
+                        "Gasista matriculada. Conexión, prueba de hermeticidad y certificado.",
+                        45000, 3, zonas, "Caballito", "Flores", "Moron"),
+                crearServicio(diego, "Electricidad", "Instalación de luminarias",
+                        "Instalo lámparas, apliques y ventiladores de techo. Materiales aparte.",
+                        35000, 5, zonas, "Belgrano", "Nunez", "Villa Urquiza"),
+                crearServicio(diego, "Electricidad", "Revisión de tablero eléctrico",
+                        "Reviso el tablero, cambio térmicas y disyuntor si hace falta y te explico qué encontré.",
+                        40000, 4, zonas, "Belgrano", "Palermo", "Recoleta"),
+                crearServicio(diego, "Aire acondicionado", "Mantenimiento de aire acondicionado",
+                        "Limpieza de filtros y unidad exterior, control de gas y prueba de funcionamiento.",
+                        38000, 6, zonas, "Palermo", "Belgrano", "Vicente Lopez"),
+                crearServicio(carla, "Pintura", "Pintura de ambiente completo",
+                        "Paredes y techo de un ambiente de hasta 20 m², con enduido y dos manos.",
+                        120000, 2, zonas, "San Telmo", "Recoleta", "Palermo"),
+                crearServicio(carla, "Limpieza", "Limpieza profunda de hogar",
+                        "Cocina, baños, vidrios y pisos. Llevo los productos. Hasta 3 ambientes.",
+                        30000, 10, zonas, "San Telmo", "Palermo", "Recoleta"),
+                crearServicio(carla, "Limpieza", "Limpieza de fin de obra",
+                        "Retiro de polvo de obra, restos de pintura y limpieza de aberturas.",
+                        65000, 3, zonas, "Avellaneda", "Quilmes", "San Telmo"),
+                crearServicio(ramon, "Carpinteria", "Arreglo de puertas y placares",
+                        "Ajusto bisagras, cambio correderas y reparo puertas que no cierran.",
+                        25000, 7, zonas, "San Isidro", "Vicente Lopez", "Tigre"),
+                crearServicio(ramon, "Cerrajeria", "Cambio de cerradura",
+                        "Cambio de cerradura o combinación. Incluye tres copias de llave.",
+                        32000, 5, zonas, "San Isidro", "Vicente Lopez", "Nunez"),
+                crearServicio(ramon, "Jardineria", "Corte de césped y poda",
+                        "Corte de pasto, bordes y poda de arbustos. Me llevo los residuos verdes.",
+                        27000, 8, zonas, "Tigre", "San Isidro", "San Martin"),
+                crearServicio(ramon, "Mudanzas", "Flete y armado de muebles",
+                        "Flete con ayudante dentro del AMBA. Desarmo y armo los muebles en destino.",
+                        80000, 2, zonas, "Lomas de Zamora", "Avellaneda", "Quilmes")
+        ));
+    }
+
+    private Usuario crearProfesional(String username, String nombre, String apellido) {
+        Usuario profesional = usuarioRepository.save(Usuario.builder()
+                .username(username)
+                .email(username + "@amicus.com")
+                .password(passwordEncoder.encode("amicus123"))
+                .nombre(nombre)
+                .apellido(apellido)
+                .rol(Rol.USUARIO)
+                .build());
+        carritoRepository.save(Carrito.builder().usuario(profesional).build());
+        return profesional;
+    }
+
+    private Servicio crearServicio(Usuario profesional, String categoria, String titulo, String descripcion,
+                                   int precio, int cupos, Map<String, Zona> zonas, String... barrios) {
+        return Servicio.builder()
+                .titulo(titulo)
+                .descripcion(descripcion)
+                .precio(BigDecimal.valueOf(precio))
+                .cuposDisponibles(cupos)
+                .categoria(categoriaRepository.findByNombreIgnoreCase(categoria).orElseThrow())
+                .profesional(profesional)
+                .zonas(new HashSet<>(List.of(barrios).stream().map(zonas::get).toList()))
+                .build();
     }
 
     /**
