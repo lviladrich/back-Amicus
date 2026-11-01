@@ -98,6 +98,8 @@ si no está definida usa un valor de desarrollo que **no sirve para producción*
 |---|---|---|
 | POST | `/api/auth/registro` | registra un usuario y le crea el carrito |
 | POST | `/api/auth/login` | valida mail y contraseña |
+| POST | `/api/auth/recuperar` | manda un link para cambiar la contraseña (204 siempre; sin SMTP el link sale en la consola) |
+| POST | `/api/auth/restablecer` | cambia la contraseña con el token del link (400 si es inválido o venció) |
 | GET | `/api/categorias` | listado de categorías para la home |
 | GET | `/api/zonas` | listado de barrios y partidos |
 | GET | `/api/servicios` | catálogo alfabético. Filtros: `?categoriaId=` `?zonaId=` `?q=` `?conCupo=true` |

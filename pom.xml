@@ -126,6 +126,12 @@
 			<version>2.8.6</version>
 		</dependency>
 
+		<!-- Mail para recuperar la contrasena. Sin SMTP configurado, el link va a la consola. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
