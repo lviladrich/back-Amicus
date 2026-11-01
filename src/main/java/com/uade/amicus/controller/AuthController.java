@@ -2,10 +2,13 @@ package com.uade.amicus.controller;
 
 import com.uade.amicus.dto.request.ActualizarPerfilRequest;
 import com.uade.amicus.dto.request.LoginRequest;
+import com.uade.amicus.dto.request.RecuperarRequest;
 import com.uade.amicus.dto.request.RegistroRequest;
+import com.uade.amicus.dto.request.RestablecerRequest;
 import com.uade.amicus.dto.response.LoginResponse;
 import com.uade.amicus.dto.response.UsuarioResponse;
 import com.uade.amicus.security.UsuarioPrincipal;
+import com.uade.amicus.service.RecuperacionService;
 import com.uade.amicus.service.UsuarioService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -28,9 +31,11 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final UsuarioService usuarioService;
+    private final RecuperacionService recuperacionService;
 
-    public AuthController(UsuarioService usuarioService) {
+    public AuthController(UsuarioService usuarioService, RecuperacionService recuperacionService) {
         this.usuarioService = usuarioService;
+        this.recuperacionService = recuperacionService;
     }
 
     /**
@@ -55,6 +60,25 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(usuarioService.login(request));
+    }
+
+    /** 204 siempre: la respuesta no puede revelar si el mail esta registrado. */
+    @Operation(summary = "Pedir un link para recuperar la contrasena",
+            description = "Si el mail corresponde a una cuenta, le manda un link con un token que vence en "
+                    + "30 minutos. Responde 204 exista o no la cuenta, para no revelar que mails estan "
+                    + "registrados. Sin SMTP configurado, el link se escribe en la consola del back.")
+    @PostMapping("/recuperar")
+    public ResponseEntity<Void> recuperar(@Valid @RequestBody RecuperarRequest request) {
+        recuperacionService.solicitar(request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Cambiar la contrasena con el token del mail",
+            description = "El token sirve una sola vez. Devuelve 400 si es invalido, ya se uso o vencio.")
+    @PostMapping("/restablecer")
+    public ResponseEntity<Void> restablecer(@Valid @RequestBody RestablecerRequest request) {
+        recuperacionService.restablecer(request);
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Buscar un usuario por id")

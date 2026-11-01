@@ -259,6 +259,8 @@ Base: `/api`
 |---|---|---|---|
 | POST | `/auth/registro` | username, email, password, nombre, apellido | 201 |
 | POST | `/auth/login` | email + password | 200 |
+| POST | `/auth/recuperar` | email. Responde igual exista o no la cuenta | 204 |
+| POST | `/auth/restablecer` | token del mail + password nueva. El token vence a los 30 min y sirve una vez | 204 |
 
 ### Categorías y zonas
 | Método | Ruta | Descripción | Éxito |
