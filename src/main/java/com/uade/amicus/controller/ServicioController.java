@@ -14,7 +14,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +24,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -51,7 +54,8 @@ public class ServicioController {
      * solo endpoint en vez de multiplicar rutas.
      */
     @Operation(summary = "Catalogo de servicios",
-            description = "Listado ordenado alfabeticamente, solo servicios activos, paginado. Todos los filtros son opcionales: sin ninguno devuelve el catalogo completo. La consigna pide poder acceder a la informacion completa o filtrada, y este endpoint resuelve las dos formas.")
+            description = "Listado ordenado alfabeticamente, solo servicios activos, paginado. Todos los filtros son opcionales: sin ninguno devuelve el catalogo completo. La consigna pide poder acceder a la informacion completa o filtrada, y este endpoint resuelve las dos formas. "
+                    + "orden acepta titulo (por defecto), precio-asc, precio-desc o nuevos. precioMin y precioMax acotan el precio (incluidos).")
     @GetMapping
     public ResponseEntity<PaginaResponse<ServicioResumenResponse>> listar(
             @RequestParam(required = false)
@@ -64,6 +68,16 @@ public class ServicioController {
             @Size(max = 100, message = "La busqueda no puede superar 100 caracteres")
             String q,
             @RequestParam(defaultValue = "false") boolean conCupo,
+            @RequestParam(required = false)
+            @PositiveOrZero(message = "El precio minimo no puede ser negativo")
+            BigDecimal precioMin,
+            @RequestParam(required = false)
+            @PositiveOrZero(message = "El precio maximo no puede ser negativo")
+            BigDecimal precioMax,
+            @RequestParam(defaultValue = "titulo")
+            @Pattern(regexp = "titulo|precio-asc|precio-desc|nuevos",
+                    message = "El orden debe ser titulo, precio-asc, precio-desc o nuevos")
+            String orden,
             @RequestParam(defaultValue = "0")
             @Min(value = 0, message = "La pagina no puede ser negativa")
             int page,
@@ -73,11 +87,12 @@ public class ServicioController {
             int size) {
 
         boolean sinFiltros = categoriaId == null && zonaId == null
-                && (q == null || q.isBlank()) && !conCupo;
+                && (q == null || q.isBlank()) && !conCupo
+                && precioMin == null && precioMax == null && "titulo".equals(orden);
 
         return ResponseEntity.ok(sinFiltros
                 ? servicioService.listar(page, size)
-                : servicioService.buscar(categoriaId, zonaId, q, conCupo, page, size));
+                : servicioService.buscar(categoriaId, zonaId, q, conCupo, precioMin, precioMax, orden, page, size));
     }
 
     /** Detalle: imagenes, descripcion completa, categoria, profesional y zonas. */

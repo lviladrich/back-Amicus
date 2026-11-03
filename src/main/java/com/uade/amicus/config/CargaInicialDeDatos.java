@@ -63,7 +63,9 @@ public class CargaInicialDeDatos implements CommandLineRunner {
     @Override
     public void run(String... args) {
         cargarCategorias();
+        cargarCategoriasNuevas();
         cargarZonas();
+        cargarZonasNuevas();
         cargarAdministrador();
         cargarServiciosDeEjemplo();
     }
@@ -225,6 +227,36 @@ public class CargaInicialDeDatos implements CommandLineRunner {
         );
 
         zonaRepository.saveAll(nombres.stream()
+                .map(nombre -> Zona.builder().nombre(nombre).build())
+                .toList());
+    }
+
+    /**
+     * Categorias y zonas que se sumaron despues de la primera carga. No usan la
+     * guarda "si esta vacia" porque las bases que ya existen tienen las
+     * originales y nunca las recibirian: se agrega cada una solo si falta.
+     */
+    private void cargarCategoriasNuevas() {
+        List<Categoria> nuevas = List.of(
+                crearCategoria("Albanileria", "Revoques, contrapisos, revestimientos y pequenas obras"),
+                crearCategoria("Electrodomesticos", "Reparacion de lavarropas, heladeras, hornos y microondas"),
+                crearCategoria("Fumigacion", "Control de cucarachas, hormigas, roedores y desinfeccion"),
+                crearCategoria("Techos", "Impermeabilizacion, membranas, goteras y canaletas")
+        );
+        categoriaRepository.saveAll(nuevas.stream()
+                .filter(categoria -> !categoriaRepository.existsByNombreIgnoreCase(categoria.getNombre()))
+                .toList());
+    }
+
+    private void cargarZonasNuevas() {
+        List<String> nombres = List.of(
+                // CABA
+                "Colegiales", "Boedo", "Barracas", "Villa Devoto", "Saavedra", "Chacarita",
+                // GBA
+                "Ramos Mejia", "Pilar", "La Plata", "Lanus", "San Fernando", "Banfield"
+        );
+        zonaRepository.saveAll(nombres.stream()
+                .filter(nombre -> !zonaRepository.existsByNombreIgnoreCase(nombre))
                 .map(nombre -> Zona.builder().nombre(nombre).build())
                 .toList());
     }

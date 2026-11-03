@@ -102,7 +102,7 @@ si no está definida usa un valor de desarrollo que **no sirve para producción*
 | POST | `/api/auth/restablecer` | cambia la contraseña con el token del link (400 si es inválido o venció) |
 | GET | `/api/categorias` | listado de categorías para la home |
 | GET | `/api/zonas` | listado de barrios y partidos |
-| GET | `/api/servicios` | catálogo alfabético. Filtros: `?categoriaId=` `?zonaId=` `?q=` `?conCupo=true` |
+| GET | `/api/servicios` | catálogo alfabético. Filtros: `?categoriaId=` `?zonaId=` `?q=` `?conCupo=true` `?precioMin=` `?precioMax=`. Orden: `?orden=titulo|precio-asc|precio-desc|nuevos` |
 | GET | `/api/servicios/{id}` | detalle con imágenes, categoría, profesional y zonas |
 | POST | `/api/servicios` | publica un servicio |
 | PUT | `/api/servicios/{id}?usuarioId=` | modifica una publicación. 403 si no sos el dueño |

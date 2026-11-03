@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +29,9 @@ public interface ServicioRepository extends JpaRepository<Servicio, Long> {
      *
      * left join a zonas: si el servicio no tiene zonas cargadas, igual aparece
      * cuando no se filtra por zona.
+     *
+     * El orden no esta en la consulta: llega en el Pageable, porque el catalogo
+     * se puede ordenar por titulo, por precio o por fecha de publicacion.
      */
     @Query("""
             select distinct s from Servicio s
@@ -38,12 +42,15 @@ public interface ServicioRepository extends JpaRepository<Servicio, Long> {
               and (:texto is null or lower(s.titulo) like lower(concat('%', :texto, '%'))
                                   or lower(s.descripcion) like lower(concat('%', :texto, '%')))
               and (:conCupo = false or s.cuposDisponibles > 0)
-            order by s.titulo asc
+              and (:precioMin is null or s.precio >= :precioMin)
+              and (:precioMax is null or s.precio <= :precioMax)
             """)
     Page<Servicio> buscar(@Param("categoriaId") Long categoriaId,
                           @Param("zonaId") Long zonaId,
                           @Param("texto") String texto,
                           @Param("conCupo") boolean conCupo,
+                          @Param("precioMin") BigDecimal precioMin,
+                          @Param("precioMax") BigDecimal precioMax,
                           Pageable pageable);
 
     /**

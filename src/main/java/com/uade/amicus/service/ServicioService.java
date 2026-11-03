@@ -14,10 +14,12 @@ import com.uade.amicus.repository.ResenaRepository;
 import com.uade.amicus.repository.ServicioImagenRepository;
 import com.uade.amicus.repository.ServicioRepository;
 import com.uade.amicus.util.Paginacion;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.uade.amicus.dto.request.ActualizarServicioRequest;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -78,11 +80,34 @@ public class ServicioService {
     @Transactional(readOnly = true)
     public PaginaResponse<ServicioResumenResponse> buscar(Long categoriaId, Long zonaId,
                                                           String texto, boolean conCupo,
-                                                          int pagina, int tamanio) {
+                                                          BigDecimal precioMin, BigDecimal precioMax,
+                                                          String orden, int pagina, int tamanio) {
+        if (precioMin != null && precioMax != null && precioMin.compareTo(precioMax) > 0) {
+            throw new ReglaDeNegocioException("El precio minimo no puede ser mayor que el maximo");
+        }
         String textoLimpio = (texto == null || texto.isBlank()) ? null : texto.trim();
         return PaginaResponse.desde(
-                servicioRepository.buscar(categoriaId, zonaId, textoLimpio, conCupo, Paginacion.de(pagina, tamanio))
+                servicioRepository.buscar(categoriaId, zonaId, textoLimpio, conCupo, precioMin, precioMax,
+                                Paginacion.de(pagina, tamanio, ordenDe(orden)))
                         .map(ServicioResumenResponse::desde));
+    }
+
+    /**
+     * Traduce el orden que pide el front a un Sort. El titulo va siempre de
+     * desempate, para que dos servicios con el mismo precio no cambien de lugar
+     * entre una pagina y la siguiente.
+     */
+    private Sort ordenDe(String orden) {
+        Sort porTitulo = Sort.by("titulo").ascending();
+        if (orden == null) {
+            return porTitulo;
+        }
+        return switch (orden) {
+            case "precio-asc" -> Sort.by("precio").ascending().and(porTitulo);
+            case "precio-desc" -> Sort.by("precio").descending().and(porTitulo);
+            case "nuevos" -> Sort.by("fechaPublicacion").descending().and(porTitulo);
+            default -> porTitulo;
+        };
     }
 
     @Transactional(readOnly = true)
