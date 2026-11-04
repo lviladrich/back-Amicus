@@ -123,6 +123,7 @@ public class ConfiguracionSeguridad {
                         .requestMatchers(HttpMethod.GET, "/api/servicios/**").permitAll()
                         .requestMatchers("/api/servicios/**").authenticated()
                         .requestMatchers("/api/carrito/**").authenticated()
+                        .requestMatchers("/api/favoritos/**").authenticated()
                         .requestMatchers("/api/ordenes/**").authenticated()
                         .requestMatchers("/api/resenas/**").authenticated()
                         .anyRequest().permitAll())
